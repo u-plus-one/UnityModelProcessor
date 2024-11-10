@@ -1,8 +1,7 @@
 {
-    "name": "D3T.BlenderModelFixer.Editor",
+    "name": "UnityModelProcessor.Editor",
     "references": [],
     "includePlatforms": [
-        "CloudRendering",
         "Editor"
     ],
     "excludePlatforms": [],

@@ -8,51 +8,58 @@ using UnityEditor.AssetImporters;
 using UnityEditor.Experimental.AssetImporters;
 #endif
 
-namespace D3TEditor.BlenderModelFixer
+namespace UnityModelProcessor.Editor
 {
 	[CustomEditor(typeof(ModelImporter)), CanEditMultipleObjects]
 	public class ExtendedModelImporterEditor : AssetImporterEditor
 	{
-		public enum SupportState
+		public enum MultiObjectState
 		{
 			None,
 			Partial,
 			All
 		}
 
-		private static readonly string[] tabNames = new string[] { "Model", "Rig", "Animation", "Materials" };
+		private static readonly string[] tabNames = new string[] {
+			"Model",
+			"Rig",
+			"Animation",
+			"Materials",
+			"Processor"
+		};
 
 		private object[] tabs;
 		private int activeTabIndex;
 
-		private SupportState supportState;
+		private MultiObjectState blenderModelState;
 
 		public override void OnEnable()
 		{
 			var param = new object[] { this };
 			tabs = new object[]
 			{
-			Activator.CreateInstance(Type.GetType("UnityEditor.ModelImporterModelEditor, UnityEditor"), param),
-			Activator.CreateInstance(Type.GetType("UnityEditor.ModelImporterRigEditor, UnityEditor"), param),
-			Activator.CreateInstance(Type.GetType("UnityEditor.ModelImporterClipEditor, UnityEditor"), param),
-			Activator.CreateInstance(Type.GetType("UnityEditor.ModelImporterMaterialEditor, UnityEditor"), param),
+				Activator.CreateInstance(Type.GetType("UnityEditor.ModelImporterModelEditor, UnityEditor"), param),
+				Activator.CreateInstance(Type.GetType("UnityEditor.ModelImporterRigEditor, UnityEditor"), param),
+				Activator.CreateInstance(Type.GetType("UnityEditor.ModelImporterClipEditor, UnityEditor"), param),
+				Activator.CreateInstance(Type.GetType("UnityEditor.ModelImporterMaterialEditor, UnityEditor"), param),
+				new ModelProcessorRulesTab()
 			};
 
 			foreach(var tab in tabs)
 			{
-				tab.GetType().GetMethod("OnEnable", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic).Invoke(tab, new object[0]);
+				tab.GetType().GetMethod("OnEnable", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic).Invoke(tab, Array.Empty<object>());
 			}
 			activeTabIndex = EditorPrefs.GetInt(GetType().Name + "ActiveEditorIndex");
 
-			int fixableModels = 0;
+			int blenderModels = 0;
 			for(int i = 0; i < targets.Length; i++)
 			{
-				if(BlenderModelPostProcessor.IsModelValidForFix(AssetDatabase.GetAssetPath(targets[i])))
+				if(ModelPostProcessor.IsBlendFileOrBlenderFBX(AssetDatabase.GetAssetPath(targets[i])))
 				{
-					fixableModels++;
+					blenderModels++;
 				}
 			}
-			supportState = fixableModels == targets.Length ? SupportState.All : fixableModels > 0 ? SupportState.Partial : SupportState.None;
+			blenderModelState = blenderModels == targets.Length ? MultiObjectState.All : blenderModels > 0 ? MultiObjectState.Partial : MultiObjectState.None;
 
 			base.OnEnable();
 		}
@@ -73,7 +80,13 @@ namespace D3TEditor.BlenderModelFixer
 
 			DrawTabHeader();
 
-			if(activeTabIndex == 0) DrawBlenderImportFixProperties();
+			if(activeTabIndex == 0)
+			{
+				//Draw custom settings for the model tab
+				extraDataSerializedObject.Update();
+				DrawBlenderSpecificSettings();
+				extraDataSerializedObject.ApplyModifiedProperties();
+			}
 
 			DrawActiveBuiltinTab();
 
@@ -90,32 +103,28 @@ namespace D3TEditor.BlenderModelFixer
 			*/
 		}
 
-		private void DrawBlenderImportFixProperties()
+		private void DrawBlenderSpecificSettings()
 		{
-			if(supportState != SupportState.None)
+			if(blenderModelState == MultiObjectState.None)
 			{
-				GUILayout.Label("Blender Import Fixes", EditorStyles.boldLabel);
-
-				if(supportState == SupportState.All)
-				{
-					extraDataSerializedObject.Update();
-					var property = extraDataSerializedObject.GetIterator();
-					property.NextVisible(true);
-					property.NextVisible(false);
-					EditorGUILayout.PropertyField(property);
-					if(property.boolValue)
-					{
-						while(property.NextVisible(false))
-						{
-							EditorGUILayout.PropertyField(property);
-						}
-					}
-					extraDataSerializedObject.ApplyModifiedProperties();
-				}
-				else
-				{
-					EditorGUILayout.LabelField(GUIContent.none, new GUIContent("(Not all selected models can be fixed)"));
-				}
+				return;
+			}
+			GUILayout.Label("Blender Import Fixes", EditorStyles.boldLabel);
+			if(blenderModelState == MultiObjectState.Partial)
+			{
+				EditorGUILayout.HelpBox("Only some of the selected models are .blend files or FBX files made by blender).", MessageType.Info);
+				return;
+			}
+			EditorGUILayout.PropertyField(extraDataSerializedObject.FindProperty(nameof(ModelProcessorSettings.applyAxisConversion)));
+			EditorGUILayout.PropertyField(extraDataSerializedObject.FindProperty(nameof(ModelProcessorSettings.flipZAxis)));
+			var fixLightsProp = extraDataSerializedObject.FindProperty(nameof(ModelProcessorSettings.fixLights));
+			EditorGUILayout.PropertyField(fixLightsProp);
+			if(fixLightsProp.boolValue)
+			{
+				EditorGUI.indentLevel++;
+				EditorGUILayout.PropertyField(extraDataSerializedObject.FindProperty(nameof(ModelProcessorSettings.lightIntensityFactor)));
+				EditorGUILayout.PropertyField(extraDataSerializedObject.FindProperty(nameof(ModelProcessorSettings.lightRangeFactor)));
+				EditorGUI.indentLevel--;
 			}
 		}
 
@@ -135,7 +144,7 @@ namespace D3TEditor.BlenderModelFixer
 						if(check.changed)
 						{
 							EditorPrefs.SetInt(GetType().Name + "ActiveEditorIndex", activeTabIndex);
-							tabs[activeTabIndex].GetType().GetMethod("OnInspectorGUI").Invoke(tabs[activeTabIndex], new object[0]);
+							tabs[activeTabIndex].GetType().GetMethod("OnInspectorGUI").Invoke(tabs[activeTabIndex], Array.Empty<object>());
 						}
 					}
 					GUILayout.FlexibleSpace();
@@ -146,7 +155,7 @@ namespace D3TEditor.BlenderModelFixer
 		private void DrawActiveBuiltinTab()
 		{
 			var activeTab = tabs[activeTabIndex];
-			activeTab.GetType().GetMethod("OnInspectorGUI").Invoke(activeTab, new object[0]);
+			activeTab.GetType().GetMethod("OnInspectorGUI").Invoke(activeTab, Array.Empty<object>());
 		}
 
 		protected override void Apply()
@@ -157,17 +166,17 @@ namespace D3TEditor.BlenderModelFixer
 				var m = tab.GetType().GetMethod("PreApply", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
 				if(m != null)
 				{
-					m.Invoke(tab, new object[0]);
+					m.Invoke(tab, Array.Empty<object>());
 				}
 			}
 
 
 			for(int i = 0; i < targets.Length; i++)
 			{
-				var extraData = (BlenderFixesExtraData)extraDataTargets[i];
+				var extraData = (ModelProcessorSettings)extraDataTargets[i];
 				var userData = AssetUserData.Get(targets[i]);
-				var serializedObject = new SerializedObject(extraData);
-				var property = serializedObject.GetIterator();
+				var extraSerializedObj = new SerializedObject(extraData);
+				var property = extraSerializedObj.GetIterator();
 				property.NextVisible(true);
 				//Skip script property
 				while(property.NextVisible(false))
@@ -184,18 +193,18 @@ namespace D3TEditor.BlenderModelFixer
 				var m = tab.GetType().GetMethod("PostApply", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
 				if(m != null)
 				{
-					m.Invoke(tab, new object[0]);
+					m.Invoke(tab, Array.Empty<object>());
 				}
 			}
 		}
 
-		protected override Type extraDataType => typeof(BlenderFixesExtraData);
+		protected override Type extraDataType => typeof(ModelProcessorSettings);
 
 		protected override void InitializeExtraDataInstance(UnityEngine.Object extraData, int targetIndex)
 		{
-			var fixesExtraData = (BlenderFixesExtraData)extraData;
+			var fixesExtraData = (ModelProcessorSettings)extraData;
 			var userData = AssetUserData.Get(targets[targetIndex]);
 			fixesExtraData.Initialize(userData);
 		}
-	} 
+	}
 }

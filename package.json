@@ -1,7 +1,7 @@
 {
-  "name": "com.github.d3tonat0r.blendermodelfixer",
+  "name": "com.github.d3tonat0r.unitymodelprocessor",
   "version": "0.2.0",
-  "displayName": "Blender Model Fixer",
+  "displayName": "Model Processor",
   "description": "Provides an asset postprocessor for fixing axis orientation related issues with blender models.",
   "unity": "2019.4",
   "category": "",

@@ -3,7 +3,7 @@ using Unity.Plastic.Newtonsoft.Json;
 using UnityEditor;
 using UnityEngine;
 
-namespace D3TEditor.BlenderModelFixer
+namespace UnityModelProcessor.Editor
 {
 	public class AssetUserData
 	{
@@ -23,28 +23,33 @@ namespace D3TEditor.BlenderModelFixer
 
 		public bool ContainsKey(string key) => data.ContainsKey(key);
 
-		public bool GetBool(string key, bool fallback)
+		public object GetValue(string key, object fallback = default)
+		{
+			return data.GetValueOrDefault(key, fallback);
+		}
+
+		public bool GetBool(string key, bool fallback = default)
 		{
 			if(data.TryGetValue(key, out object value)) return System.Convert.ToBoolean(value);
-			else return fallback;
+			return fallback;
 		}
 
-		public string GetString(string key, string fallback)
+		public string GetString(string key, string fallback = default)
 		{
 			if(data.TryGetValue(key, out object value)) return System.Convert.ToString(value);
-			else return fallback;
+			return fallback;
 		}
 
-		public int GetInt(string key, int fallback)
+		public int GetInt(string key, int fallback = default)
 		{
 			if(data.TryGetValue(key, out object value)) return System.Convert.ToInt32(value);
-			else return fallback;
+			return fallback;
 		}
 
-		public float GetFloat(string key, float fallback)
+		public float GetFloat(string key, float fallback = default)
 		{
 			if(data.TryGetValue(key, out object value)) return System.Convert.ToSingle(value);
-			else return fallback;
+			return fallback;
 		}
 
 		public void SetValue(string key, object value)

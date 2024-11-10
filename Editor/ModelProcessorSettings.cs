@@ -1,12 +1,14 @@
-﻿using UnityEditor;
+﻿using System.Reflection;
+using UnityEditor;
 using UnityEngine;
 
-namespace D3TEditor.BlenderModelFixer
+namespace UnityModelProcessor.Editor
 {
-	public class BlenderFixesExtraData : ScriptableObject
+	public class ModelProcessorSettings : ScriptableObject
 	{
 		public bool applyAxisConversion = false;
 		public bool flipZAxis = true;
+
 		public bool fixLights = true;
 		public float lightIntensityFactor = 0.01f;
 		public float lightRangeFactor = 0.1f;
@@ -31,16 +33,16 @@ namespace D3TEditor.BlenderModelFixer
 				switch(property.propertyType)
 				{
 					case SerializedPropertyType.Boolean: 
-						property.boolValue = userData.GetBool(propName, default);
+						property.boolValue = userData.GetBool(propName);
 						break;
 					case SerializedPropertyType.Integer:
-						property.intValue = userData.GetInt(propName, default);
+						property.intValue = userData.GetInt(propName);
 						break;
 					case SerializedPropertyType.Float:
-						property.floatValue = userData.GetFloat(propName, default);
+						property.floatValue = userData.GetFloat(propName);
 						break;
 					case SerializedPropertyType.String:
-						property.stringValue = userData.GetString(propName, default);
+						property.stringValue = userData.GetString(propName);
 						break;
 					default:
 						throw new System.NotImplementedException();
