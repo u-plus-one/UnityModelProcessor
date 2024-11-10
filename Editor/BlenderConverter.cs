@@ -23,6 +23,18 @@ namespace UnityModelProcessor.Editor
 			public EditorCurveBinding scaleZ;
 		}
 
+		private struct TransformSnapshot
+		{
+			public Vector3 position;
+			public Quaternion rotation;
+
+			public TransformSnapshot(Transform t)
+			{
+				position = t.position;
+				rotation = t.rotation;
+			}
+		}
+
 		const float SQRT2_HALF = 0.70710678f;
 		private static readonly Vector3 Z_FLIP_SCALE = new Vector3(-1, 1, -1);
 		private static readonly Quaternion ROTATION_FIX = new Quaternion(-SQRT2_HALF, 0, 0, SQRT2_HALF);
@@ -34,30 +46,30 @@ namespace UnityModelProcessor.Editor
 			//Debug.Log("Applying fix on "+root.name);
 			var meshes = GetUniqueMeshes(root.transform);
 
-			var transformStore = new Dictionary<Transform, (Vector3, Quaternion)>();
+			var transformSnapshots = new Dictionary<Transform, TransformSnapshot>();
 			foreach(var t in root.GetComponentsInChildren<Transform>(true))
 			{
 				if(t == root.transform) continue;
-				transformStore.Add(t, (t.position, t.rotation));
+				transformSnapshots.Add(t, new TransformSnapshot(t));
 			}
 
-			var modifications = new Dictionary<Transform, Matrix4x4>();
-			var transforms = transformStore.Keys.ToArray();
+			var deltas = new Dictionary<Transform, Matrix4x4>();
+			var transforms = transformSnapshots.Keys.ToArray();
 			for(int i = 0; i < transforms.Length; i++)
 			{
-				var t = transforms[i];
-				if(t == null || t == root.transform) continue;
+				var transform = transforms[i];
+				if(transform == null || transform == root.transform) continue;
 				//Delete objects that are hidden and have no children
-				if(ShouldDeleteObject(t))
+				if(ShouldDeleteObject(transform))
 				{
-					Object.DestroyImmediate(t.gameObject);
+					Object.DestroyImmediate(transform.gameObject);
 				}
 				else
 				{
-					var stored = transformStore[t];
-					if(t.TryGetComponent<Light>(out _)) continue; //skip light transforms
-					var mod = ApplyTransformFix(t, stored.Item1, stored.Item2, flipZ);
-					modifications.Add(t, mod);
+					var snapshot = transformSnapshots[transform];
+					if(transform.TryGetComponent<Light>(out _)) continue; //skip light transforms
+					var transformationMatrix = ApplyTransformFix(transform, snapshot.position, snapshot.rotation, flipZ);
+					deltas.Add(transform, transformationMatrix);
 				}
 			}
 
@@ -69,9 +81,9 @@ namespace UnityModelProcessor.Editor
 			}
 
 			List<Mesh> fixedSkinnedMeshes = new List<Mesh>();
-			foreach(var smr in root.GetComponentsInChildren<SkinnedMeshRenderer>(true))
+			foreach(var skinnedMeshRenderer in root.GetComponentsInChildren<SkinnedMeshRenderer>(true))
 			{
-				ApplyBindPoseFix(smr, modifications, fixedSkinnedMeshes);
+				ApplyBindPoseFix(skinnedMeshRenderer, deltas, fixedSkinnedMeshes);
 			}
 
 			return true;
