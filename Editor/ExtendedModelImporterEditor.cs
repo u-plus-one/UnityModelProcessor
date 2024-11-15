@@ -42,7 +42,7 @@ namespace ModelProcessor.Editor
 				Activator.CreateInstance(Type.GetType("UnityEditor.ModelImporterRigEditor, UnityEditor"), param),
 				Activator.CreateInstance(Type.GetType("UnityEditor.ModelImporterClipEditor, UnityEditor"), param),
 				Activator.CreateInstance(Type.GetType("UnityEditor.ModelImporterMaterialEditor, UnityEditor"), param),
-				new ModelProcessorRulesTab()
+				new ModelProcessorRulesTab(extraDataSerializedObject)
 			};
 
 			foreach(var tab in tabs)
