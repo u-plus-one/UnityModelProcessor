@@ -2,7 +2,7 @@
 using UnityEditor;
 using UnityEngine;
 
-namespace UnityModelProcessor.Editor
+namespace ModelProcessor.Editor
 {
 	public class ModelProcessorSettings : ScriptableObject
 	{

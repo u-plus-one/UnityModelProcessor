@@ -1,5 +1,6 @@
 {
-    "name": "UnityModelProcessor.Editor",
+    "name": "ModelProcessor.Editor",
+    "rootNamespace": "",
     "references": [],
     "includePlatforms": [
         "Editor"

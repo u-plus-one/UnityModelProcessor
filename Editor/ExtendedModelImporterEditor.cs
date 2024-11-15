@@ -8,7 +8,7 @@ using UnityEditor.AssetImporters;
 using UnityEditor.Experimental.AssetImporters;
 #endif
 
-namespace UnityModelProcessor.Editor
+namespace ModelProcessor.Editor
 {
 	[CustomEditor(typeof(ModelImporter)), CanEditMultipleObjects]
 	public class ExtendedModelImporterEditor : AssetImporterEditor

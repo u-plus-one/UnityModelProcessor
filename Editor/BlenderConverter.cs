@@ -3,7 +3,7 @@ using System.Linq;
 using UnityEditor;
 using UnityEngine;
 
-namespace UnityModelProcessor.Editor
+namespace ModelProcessor.Editor
 {
 	public static class BlenderConverter
 	{

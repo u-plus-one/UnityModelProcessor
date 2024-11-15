@@ -1,4 +1,4 @@
-﻿namespace UnityModelProcessor.Editor
+﻿namespace ModelProcessor.Editor
 {
 	public class ModelProcessorRulesTab
 	{

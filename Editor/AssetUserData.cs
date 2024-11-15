@@ -3,7 +3,7 @@ using Unity.Plastic.Newtonsoft.Json;
 using UnityEditor;
 using UnityEngine;
 
-namespace UnityModelProcessor.Editor
+namespace ModelProcessor.Editor
 {
 	public class AssetUserData
 	{
