@@ -13,7 +13,7 @@ WIP: Ability to apply user-defined postprocessing rules on the model (e.g: autom
 
 Open the Package Manager window, click on "Add Package from Git URL ...", then enter the following:
 ```
-https://github.com/d3tonat0r/unitymodelprocessor.git
+https://github.com/u-plus-one/unitymodelprocessor.git
 ```
 
 ### Option 2: Manually Editing packages.json
@@ -21,7 +21,7 @@ https://github.com/d3tonat0r/unitymodelprocessor.git
 Add the following line to your project's `Packages/manifest.json`:
 
 ```json
-"com.github.d3tonat0r.unityosxbuild": "https://github.com/d3tonat0r/unitymodelprocessor.git"
+"com.github.u-plus-one.modelprocessor": "https://github.com/u-plus-one/unitymodelprocessor.git"
 ```
 
 ### Option 3: Manual Installation (not recommended)
