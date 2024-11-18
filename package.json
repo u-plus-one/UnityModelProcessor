@@ -5,6 +5,10 @@
   "description": "Provides an asset post processor that is aimed towards fixing various issues related to importing blender models.",
   "unity": "2019.4",
   "category": "",
+  "author": {
+    "name": "u+1",
+    "url": "https://github.com/u-plus-one"
+  },
   "hideInEditor": true,
   "type": "library"
 }
