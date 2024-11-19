@@ -75,6 +75,8 @@ namespace ModelProcessor.Editor
 				case SerializedPropertyType.Integer: return property.intValue;
 				case SerializedPropertyType.Float: return property.floatValue;
 				case SerializedPropertyType.String: return property.stringValue;
+				case SerializedPropertyType.ObjectReference: return property.objectReferenceValue;
+				case SerializedPropertyType.Generic: return property.boxedValue;
 				default: throw new System.NotImplementedException();
 			}
 		}

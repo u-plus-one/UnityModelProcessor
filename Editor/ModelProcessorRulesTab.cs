@@ -4,13 +4,7 @@ namespace ModelProcessor.Editor
 {
 	public class ModelProcessorRulesTab
 	{
-		private SerializedObject extraDataSerializedObject;
-
-		public ModelProcessorRulesTab(SerializedObject extraDataSerializedObject)
-		{
-			this.extraDataSerializedObject = extraDataSerializedObject;
-			this.extraDataSerializedObject.FindProperty("Rules").managedReferenceValue
-		}
+		public SerializedObject extraDataSerializedObject;
 
 		public void OnEnable()
 		{
@@ -24,7 +18,8 @@ namespace ModelProcessor.Editor
 
 		public void OnInspectorGUI()
 		{
-			//TODO
+			var rules = extraDataSerializedObject.FindProperty("rules");
+			EditorGUILayout.PropertyField(rules);
 		}
 	}
 }

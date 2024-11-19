@@ -13,6 +13,8 @@ namespace ModelProcessor.Editor
 		public float lightIntensityFactor = 0.01f;
 		public float lightRangeFactor = 0.1f;
 
+		public ModelProcessorRules rules = new ModelProcessorRules();
+
 		public void Initialize(AssetUserData userData)
 		{
 			var serializedObj = new SerializedObject(this);

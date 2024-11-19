@@ -30,19 +30,21 @@ namespace ModelProcessor.Editor
 
 		private object[] tabs;
 		private int activeTabIndex;
+		private ModelProcessorRulesTab rulesTab;
 
 		private MultiObjectState blenderModelState;
 
 		public override void OnEnable()
 		{
 			var param = new object[] { this };
+			rulesTab = new ModelProcessorRulesTab();
 			tabs = new object[]
 			{
 				Activator.CreateInstance(Type.GetType("UnityEditor.ModelImporterModelEditor, UnityEditor"), param),
 				Activator.CreateInstance(Type.GetType("UnityEditor.ModelImporterRigEditor, UnityEditor"), param),
 				Activator.CreateInstance(Type.GetType("UnityEditor.ModelImporterClipEditor, UnityEditor"), param),
 				Activator.CreateInstance(Type.GetType("UnityEditor.ModelImporterMaterialEditor, UnityEditor"), param),
-				new ModelProcessorRulesTab(extraDataSerializedObject)
+				rulesTab
 			};
 
 			foreach(var tab in tabs)
@@ -66,17 +68,19 @@ namespace ModelProcessor.Editor
 
 		public override void OnDisable()
 		{
-			base.OnDisable();
 			foreach(var tab in tabs)
 			{
 				tab.GetType().GetMethod("OnDisable", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic).Invoke(tab, new object[0]);
 			}
+			base.OnDisable();
 		}
 
 		public override void OnInspectorGUI()
 		{
 			serializedObject.Update();
 			extraDataSerializedObject?.Update();
+
+			rulesTab.extraDataSerializedObject = extraDataSerializedObject;
 
 			DrawTabHeader();
 
