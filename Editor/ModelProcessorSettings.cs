@@ -7,9 +7,9 @@ namespace ModelProcessor.Editor
 	public class ModelProcessorSettings : ScriptableObject
 	{
 		public bool applyAxisConversion = false;
-		public bool flipZAxis = true;
+		public bool flipZAxis = false;
 
-		public bool fixLights = true;
+		public bool fixLights = false;
 		public float lightIntensityFactor = 0.01f;
 		public float lightRangeFactor = 0.1f;
 
