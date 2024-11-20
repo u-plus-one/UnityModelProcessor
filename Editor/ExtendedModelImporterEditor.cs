@@ -116,7 +116,7 @@ namespace ModelProcessor.Editor
 				return;
 			}
 			EditorGUILayout.PropertyField(extraDataSerializedObject.FindProperty(nameof(ModelProcessorSettings.applyAxisConversion)));
-			EditorGUILayout.PropertyField(extraDataSerializedObject.FindProperty(nameof(ModelProcessorSettings.flipZAxis)));
+			EditorGUILayout.PropertyField(extraDataSerializedObject.FindProperty(nameof(ModelProcessorSettings.matchAxes)));
 			var fixLightsProp = extraDataSerializedObject.FindProperty(nameof(ModelProcessorSettings.fixLights));
 			EditorGUILayout.PropertyField(fixLightsProp);
 			if(fixLightsProp.boolValue)

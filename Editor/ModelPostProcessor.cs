@@ -16,7 +16,7 @@ namespace ModelProcessor.Editor
 			//Apply transform orientation fix if enabled
 			if(userData.GetBool(nameof(ModelProcessorSettings.applyAxisConversion)))
 			{
-				bool flipZ = userData.GetBool(nameof(ModelProcessorSettings.flipZAxis));
+				bool flipZ = userData.GetBool(nameof(ModelProcessorSettings.matchAxes));
 				modified |= BlenderConverter.FixTransforms(root, flipZ, modelImporter);
 			}
 
@@ -41,7 +41,7 @@ namespace ModelProcessor.Editor
 			//Fix animation clips if model is imported with axis conversion enabled
 			if(userData.GetBool(nameof(ModelProcessorSettings.applyAxisConversion)))
 			{
-				bool flipZ = userData.GetBool(nameof(ModelProcessorSettings.flipZAxis));
+				bool flipZ = userData.GetBool(nameof(ModelProcessorSettings.matchAxes));
 				BlenderConverter.FixAnimationClipOrientation(clip, flipZ);
 				modelImporter.SaveAndReimport();
 			}
