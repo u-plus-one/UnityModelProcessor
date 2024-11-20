@@ -115,8 +115,16 @@ namespace ModelProcessor.Editor
 				EditorGUILayout.HelpBox("Only some of the selected models are .blend files or FBX files made by blender).", MessageType.Info);
 				return;
 			}
-			EditorGUILayout.PropertyField(extraDataSerializedObject.FindProperty(nameof(ModelProcessorSettings.applyAxisConversion)));
-			EditorGUILayout.PropertyField(extraDataSerializedObject.FindProperty(nameof(ModelProcessorSettings.matchAxes)));
+
+			var applyAxisConversion = extraDataSerializedObject.FindProperty(nameof(ModelProcessorSettings.applyAxisConversion));
+			EditorGUILayout.PropertyField(applyAxisConversion);
+			if(applyAxisConversion.boolValue)
+			{
+				EditorGUI.indentLevel++;
+				EditorGUILayout.PropertyField(extraDataSerializedObject.FindProperty(nameof(ModelProcessorSettings.matchAxes)));
+				EditorGUI.indentLevel--;
+			}
+
 			var fixLightsProp = extraDataSerializedObject.FindProperty(nameof(ModelProcessorSettings.fixLights));
 			EditorGUILayout.PropertyField(fixLightsProp);
 			if(fixLightsProp.boolValue)
