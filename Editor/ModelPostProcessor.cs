@@ -6,25 +6,29 @@ namespace ModelProcessor.Editor
 {
 	public class ModelPostProcessor : AssetPostprocessor
 	{
+		private void GetSettings(out ModelImporter importer, out ModelProcessorSettings customSettings)
+		{
+			importer = assetImporter as ModelImporter;
+			customSettings =  ModelProcessorSettings.FromJson(importer.userData);
+		}
 
 		private void OnPostprocessModel(GameObject root)
 		{
-			var modelImporter = assetImporter as ModelImporter;
-			var userData = AssetUserData.TryDeserialize(modelImporter.userData);
-			bool modified = false;
+			GetSettings(out var modelImporter, out var customSettings);
 
+			bool modified = false;
 			//Apply transform orientation fix if enabled
-			if(userData.GetBool(nameof(ModelProcessorSettings.applyAxisConversion)))
+			if(customSettings.applyAxisConversion)
 			{
-				bool flipZ = userData.GetBool(nameof(ModelProcessorSettings.matchAxes));
+				bool flipZ = customSettings.matchAxes;
 				modified |= BlenderConverter.FixTransforms(root, flipZ, modelImporter);
 			}
 
 			//Apply light fix if enabled
-			if(userData.GetBool(nameof(ModelProcessorSettings.fixLights)))
+			if(customSettings.fixLights)
 			{
-				var intensityFactor = userData.GetFloat(nameof(ModelProcessorSettings.lightIntensityFactor), 0.01f);
-				var rangeFactor = userData.GetFloat(nameof(ModelProcessorSettings.lightRangeFactor), 0.1f);
+				var intensityFactor = customSettings.lightIntensityFactor;
+				var rangeFactor = customSettings.lightRangeFactor;
 				modified |= BlenderConverter.FixLights(root, intensityFactor, rangeFactor);
 			}
 
@@ -36,12 +40,12 @@ namespace ModelProcessor.Editor
 
 		private void OnPostprocessAnimation(GameObject root, AnimationClip clip)
 		{
-			var modelImporter = assetImporter as ModelImporter;
-			var userData = AssetUserData.TryDeserialize(modelImporter.userData);
+			GetSettings(out var modelImporter, out var customSettings);
+
 			//Fix animation clips if model is imported with axis conversion enabled
-			if(userData.GetBool(nameof(ModelProcessorSettings.applyAxisConversion)))
+			if(customSettings.applyAxisConversion)
 			{
-				bool flipZ = userData.GetBool(nameof(ModelProcessorSettings.matchAxes));
+				bool flipZ = customSettings.matchAxes;
 				BlenderConverter.FixAnimationClipOrientation(clip, flipZ);
 				modelImporter.SaveAndReimport();
 			}

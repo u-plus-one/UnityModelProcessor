@@ -2,6 +2,9 @@
 using System.Reflection;
 using UnityEditor;
 using UnityEngine;
+using System.Collections.Generic;
+using Unity.Plastic.Newtonsoft.Json;
+
 #if UNITY_2020_2_OR_NEWER
 using UnityEditor.AssetImporters;
 #else
@@ -178,23 +181,14 @@ namespace ModelProcessor.Editor
 				}
 			}
 
-
 			for(int i = 0; i < targets.Length; i++)
 			{
 				var extraData = (ModelProcessorSettings)extraDataTargets[i];
-				var userData = AssetUserData.Get(targets[i]);
-				var extraSerializedObj = new SerializedObject(extraData);
-				var property = extraSerializedObj.GetIterator();
-				property.NextVisible(true);
-				//Skip script property
-				while(property.NextVisible(false))
-				{
-					userData.SetValue(property);
-				}
-				userData.ApplyModified(targets[i]);
+				var userData = extraData.ToJson();
+				var path = AssetDatabase.GetAssetPath(targets[i]);
+				AssetImporter.GetAtPath(path).userData = userData;
 			}
 			base.Apply();
-
 
 			foreach(var tab in tabs)
 			{
@@ -210,9 +204,11 @@ namespace ModelProcessor.Editor
 
 		protected override void InitializeExtraDataInstance(UnityEngine.Object extraData, int targetIndex)
 		{
-			var fixesExtraData = (ModelProcessorSettings)extraData;
-			var userData = AssetUserData.Get(targets[targetIndex]);
-			fixesExtraData.Initialize(userData);
+			var assetPath = AssetDatabase.GetAssetPath(targets[targetIndex]);
+			var userData = AssetImporter.GetAtPath(assetPath).userData;
+
+			var settings = (ModelProcessorSettings)extraData;
+			settings.LoadJson(userData);
 		}
 	}
 }
