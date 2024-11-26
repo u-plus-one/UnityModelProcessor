@@ -33,6 +33,11 @@ namespace ModelProcessor.Editor
 				modified |= BlenderConverter.FixLights(root, intensityFactor, rangeFactor);
 			}
 
+			if(customSettings.rules.enabled)
+			{
+				customSettings.rules.ApplyRulesToModel(root);
+			}
+
 			//Save and reimport model if any changes were made
 			if(modified)
 			{
