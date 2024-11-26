@@ -64,11 +64,11 @@ namespace ModelProcessor.Editor
 		{
 			//Test if the file is a .blend file or a file that was exported from Blender
 			string ext = Path.GetExtension(assetPath).ToLower();
-			if(ext == "blend")
+			if(ext == ".blend")
 			{
 				return true;
 			}
-			else if(ext == "fbx")
+			else if(ext == ".fbx")
 			{
 				//Only get the first 512 bytes to get the creator info
 				using(var stream = File.Open(assetPath, FileMode.Open, FileAccess.Read, FileShare.Read))
