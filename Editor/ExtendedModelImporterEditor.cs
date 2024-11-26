@@ -2,6 +2,7 @@
 using System.Reflection;
 using UnityEditor;
 using UnityEngine;
+
 #if UNITY_2020_2_OR_NEWER
 using UnityEditor.AssetImporters;
 #else
@@ -34,8 +35,20 @@ namespace ModelProcessor.Editor
 
 		private MultiObjectState blenderModelState;
 
+		protected override Type extraDataType => typeof(ModelProcessorSettings);
+
+		protected override void InitializeExtraDataInstance(UnityEngine.Object extraData, int targetIndex)
+		{
+			var assetPath = AssetDatabase.GetAssetPath(targets[targetIndex]);
+			var userData = AssetImporter.GetAtPath(assetPath).userData;
+
+			var settings = (ModelProcessorSettings)extraData;
+			settings.LoadJson(userData);
+		}
+
 		public override void OnEnable()
 		{
+			//Create the tabs
 			var param = new object[] { this };
 			rulesTab = new ModelProcessorRulesTab();
 			tabs = new object[]
@@ -53,10 +66,11 @@ namespace ModelProcessor.Editor
 			}
 			activeTabIndex = EditorPrefs.GetInt(GetType().Name + "ActiveEditorIndex");
 
+			//Check how many of the selected models are blender models
 			int blenderModels = 0;
 			for(int i = 0; i < targets.Length; i++)
 			{
-				if(ModelPostProcessor.IsBlendFileOrBlenderFBX(AssetDatabase.GetAssetPath(targets[i])))
+				if(ModelPostProcessor.IsBlendFileOrBlenderExport(AssetDatabase.GetAssetPath(targets[i])))
 				{
 					blenderModels++;
 				}
@@ -82,21 +96,24 @@ namespace ModelProcessor.Editor
 
 			rulesTab.extraDataSerializedObject = extraDataSerializedObject;
 
+			//Draw the tab header
 			DrawTabHeader();
 
 			if(activeTabIndex == 0)
 			{
 				//Draw custom settings for the model tab
 				extraDataSerializedObject.Update();
-				DrawBlenderSpecificSettings();
+				DrawCustomSettings();
 				extraDataSerializedObject.ApplyModifiedProperties();
 			}
 
+			//Draw the built-in GUI for the active tab
 			DrawActiveBuiltinTab();
 
 			serializedObject.ApplyModifiedProperties();
 			extraDataSerializedObject.ApplyModifiedProperties();
 
+			//Apply and revert buttons
 			ApplyRevertGUI();
 
 			/*
@@ -107,20 +124,32 @@ namespace ModelProcessor.Editor
 			*/
 		}
 
-		private void DrawBlenderSpecificSettings()
+		private void DrawCustomSettings()
 		{
-			if(blenderModelState == MultiObjectState.None)
+			if(blenderModelState != MultiObjectState.None)
 			{
-				return;
+				DrawBlenderSettings();
 			}
+		}
+
+		private void DrawBlenderSettings()
+		{
 			GUILayout.Label("Blender Import Fixes", EditorStyles.boldLabel);
 			if(blenderModelState == MultiObjectState.Partial)
 			{
 				EditorGUILayout.HelpBox("Only some of the selected models are .blend files or FBX files made by blender).", MessageType.Info);
 				return;
 			}
-			EditorGUILayout.PropertyField(extraDataSerializedObject.FindProperty(nameof(ModelProcessorSettings.applyAxisConversion)));
-			EditorGUILayout.PropertyField(extraDataSerializedObject.FindProperty(nameof(ModelProcessorSettings.flipZAxis)));
+
+			var applyAxisConversion = extraDataSerializedObject.FindProperty(nameof(ModelProcessorSettings.applyAxisConversion));
+			EditorGUILayout.PropertyField(applyAxisConversion);
+			if(applyAxisConversion.boolValue)
+			{
+				EditorGUI.indentLevel++;
+				EditorGUILayout.PropertyField(extraDataSerializedObject.FindProperty(nameof(ModelProcessorSettings.matchAxes)));
+				EditorGUI.indentLevel--;
+			}
+
 			var fixLightsProp = extraDataSerializedObject.FindProperty(nameof(ModelProcessorSettings.fixLights));
 			EditorGUILayout.PropertyField(fixLightsProp);
 			if(fixLightsProp.boolValue)
@@ -130,6 +159,8 @@ namespace ModelProcessor.Editor
 				EditorGUILayout.PropertyField(extraDataSerializedObject.FindProperty(nameof(ModelProcessorSettings.lightRangeFactor)));
 				EditorGUI.indentLevel--;
 			}
+
+			//Add more blender related settings here
 		}
 
 		private void DrawTabHeader()
@@ -174,23 +205,14 @@ namespace ModelProcessor.Editor
 				}
 			}
 
-
 			for(int i = 0; i < targets.Length; i++)
 			{
 				var extraData = (ModelProcessorSettings)extraDataTargets[i];
-				var userData = AssetUserData.Get(targets[i]);
-				var extraSerializedObj = new SerializedObject(extraData);
-				var property = extraSerializedObj.GetIterator();
-				property.NextVisible(true);
-				//Skip script property
-				while(property.NextVisible(false))
-				{
-					userData.SetValue(property);
-				}
-				userData.ApplyModified(targets[i]);
+				var userData = extraData.ToJson();
+				var path = AssetDatabase.GetAssetPath(targets[i]);
+				AssetImporter.GetAtPath(path).userData = userData;
 			}
 			base.Apply();
-
 
 			foreach(var tab in tabs)
 			{
@@ -200,15 +222,6 @@ namespace ModelProcessor.Editor
 					m.Invoke(tab, Array.Empty<object>());
 				}
 			}
-		}
-
-		protected override Type extraDataType => typeof(ModelProcessorSettings);
-
-		protected override void InitializeExtraDataInstance(UnityEngine.Object extraData, int targetIndex)
-		{
-			var fixesExtraData = (ModelProcessorSettings)extraData;
-			var userData = AssetUserData.Get(targets[targetIndex]);
-			fixesExtraData.Initialize(userData);
 		}
 	}
 }

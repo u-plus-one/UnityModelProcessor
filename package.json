@@ -1,13 +1,13 @@
 {
-  "name": "com.github.d3tonat0r.unitymodelprocessor",
+  "name": "com.github.u-plus-one.unitymodelprocessor",
   "version": "0.2.0",
   "displayName": "Model Processor",
-  "description": "Provides an asset postprocessor for fixing axis orientation related issues with blender models.",
+  "description": "Provides an asset post processor that is aimed towards fixing various issues related to importing blender models.",
   "unity": "2019.4",
   "category": "",
   "author": {
-    "name": "D3TONAT0R",
-    "url": "https://github.com/d3tonat0r"
+    "name": "u+1",
+    "url": "https://github.com/u-plus-one"
   },
   "hideInEditor": true,
   "type": "library"
