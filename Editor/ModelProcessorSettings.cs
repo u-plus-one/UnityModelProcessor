@@ -1,6 +1,4 @@
-﻿using System.Reflection;
-using UnityEditor;
-using UnityEngine;
+﻿using UnityEngine;
 
 namespace ModelProcessor.Editor
 {

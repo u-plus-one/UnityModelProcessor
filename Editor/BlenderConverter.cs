@@ -41,7 +41,7 @@ namespace ModelProcessor.Editor
 		private static readonly Quaternion ROTATION_FIX_Z_FLIP = new Quaternion(0, SQRT2_HALF, SQRT2_HALF, 0);
 		private static readonly Quaternion ANIM_ROTATION_FIX = new Quaternion(SQRT2_HALF, 0, 0, SQRT2_HALF);
 
-		public static bool FixTransforms(GameObject root, bool flipZ, ModelImporter modelImporter)
+		public static void FixTransforms(GameObject root, bool flipZ, ModelImporter modelImporter)
 		{
 			//Debug.Log("Applying fix on "+root.name);
 			var meshes = GetUniqueMeshes(root.transform);
@@ -60,6 +60,7 @@ namespace ModelProcessor.Editor
 				var transform = transforms[i];
 				if(transform == null || transform == root.transform) continue;
 				//Delete objects that are hidden and have no children
+				//TODO: turn this into a setting (or rule)
 				if(ShouldDeleteObject(transform))
 				{
 					Object.DestroyImmediate(transform.gameObject);
@@ -85,8 +86,6 @@ namespace ModelProcessor.Editor
 			{
 				ApplyBindPoseFix(skinnedMeshRenderer, deltas, fixedSkinnedMeshes);
 			}
-
-			return true;
 		}
 
 		public static void FixAnimationClipOrientation(AnimationClip clip, bool flipZ)

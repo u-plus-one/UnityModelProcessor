@@ -2,8 +2,6 @@
 using System.Reflection;
 using UnityEditor;
 using UnityEngine;
-using System.Collections.Generic;
-using Unity.Plastic.Newtonsoft.Json;
 
 #if UNITY_2020_2_OR_NEWER
 using UnityEditor.AssetImporters;
@@ -33,11 +31,22 @@ namespace ModelProcessor.Editor
 
 		private object[] tabs;
 		private int activeTabIndex;
-
 		private MultiObjectState blenderModelState;
+
+		protected override Type extraDataType => typeof(ModelProcessorSettings);
+
+		protected override void InitializeExtraDataInstance(UnityEngine.Object extraData, int targetIndex)
+		{
+			var assetPath = AssetDatabase.GetAssetPath(targets[targetIndex]);
+			var userData = AssetImporter.GetAtPath(assetPath).userData;
+
+			var settings = (ModelProcessorSettings)extraData;
+			settings.LoadJson(userData);
+		}
 
 		public override void OnEnable()
 		{
+			//Create the tabs
 			var param = new object[] { this };
 			tabs = new object[]
 			{
@@ -54,10 +63,11 @@ namespace ModelProcessor.Editor
 			}
 			activeTabIndex = EditorPrefs.GetInt(GetType().Name + "ActiveEditorIndex");
 
+			//Check how many of the selected models are blender models
 			int blenderModels = 0;
 			for(int i = 0; i < targets.Length; i++)
 			{
-				if(ModelPostProcessor.IsBlendFileOrBlenderFBX(AssetDatabase.GetAssetPath(targets[i])))
+				if(ModelPostProcessor.IsBlendFileOrBlenderExport(AssetDatabase.GetAssetPath(targets[i])))
 				{
 					blenderModels++;
 				}
@@ -81,21 +91,24 @@ namespace ModelProcessor.Editor
 			serializedObject.Update();
 			extraDataSerializedObject?.Update();
 
+			//Draw the tab header
 			DrawTabHeader();
 
 			if(activeTabIndex == 0)
 			{
 				//Draw custom settings for the model tab
 				extraDataSerializedObject.Update();
-				DrawBlenderSpecificSettings();
+				DrawCustomSettings();
 				extraDataSerializedObject.ApplyModifiedProperties();
 			}
 
+			//Draw the built-in GUI for the active tab
 			DrawActiveBuiltinTab();
 
 			serializedObject.ApplyModifiedProperties();
 			extraDataSerializedObject.ApplyModifiedProperties();
 
+			//Apply and revert buttons
 			ApplyRevertGUI();
 
 			/*
@@ -106,12 +119,16 @@ namespace ModelProcessor.Editor
 			*/
 		}
 
-		private void DrawBlenderSpecificSettings()
+		private void DrawCustomSettings()
 		{
-			if(blenderModelState == MultiObjectState.None)
+			if(blenderModelState != MultiObjectState.None)
 			{
-				return;
+				DrawBlenderSettings();
 			}
+		}
+
+		private void DrawBlenderSettings()
+		{
 			GUILayout.Label("Blender Import Fixes", EditorStyles.boldLabel);
 			if(blenderModelState == MultiObjectState.Partial)
 			{
@@ -137,6 +154,8 @@ namespace ModelProcessor.Editor
 				EditorGUILayout.PropertyField(extraDataSerializedObject.FindProperty(nameof(ModelProcessorSettings.lightRangeFactor)));
 				EditorGUI.indentLevel--;
 			}
+
+			//Add more blender related settings here
 		}
 
 		private void DrawTabHeader()
@@ -198,17 +217,6 @@ namespace ModelProcessor.Editor
 					m.Invoke(tab, Array.Empty<object>());
 				}
 			}
-		}
-
-		protected override Type extraDataType => typeof(ModelProcessorSettings);
-
-		protected override void InitializeExtraDataInstance(UnityEngine.Object extraData, int targetIndex)
-		{
-			var assetPath = AssetDatabase.GetAssetPath(targets[targetIndex]);
-			var userData = AssetImporter.GetAtPath(assetPath).userData;
-
-			var settings = (ModelProcessorSettings)extraData;
-			settings.LoadJson(userData);
 		}
 	}
 }
