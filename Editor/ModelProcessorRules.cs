@@ -5,126 +5,152 @@ using Object = UnityEngine.Object;
 
 namespace ModelProcessor.Editor
 {
-    [System.Serializable]
-    public class ModelProcessorRules
-    {
-        [System.Serializable]
-        public class Rule
-        {
-            public enum ConditionType : int
-            {
-                Always = 0,
-                NameStartsWith = 1,
-                NameEndsWith = 2,
-                NameContains = 3,
-            }
+	[System.Serializable]
+	public class ModelProcessorRules
+	{
+		[System.Serializable]
+		public class Rule
+		{
+			public enum ConditionType : int
+			{
+				Always = 0,
+				NameStartsWith = 1,
+				NameEndsWith = 2,
+				NameContains = 3,
+				NameMatchesRegex = 4
+			}
 
-            public enum ActionType : int
-            {
-                None = 0,
+			public enum ActionType : int
+			{
+				None = 0,
 				//game object operations
-                SetGameObjectInactive = 001,
-                DestroyGameObject = 002,
+				SetGameObjectInactive = 001,
+				DestroyGameObject = 002,
 				MarkStatic = 003,
+				SetLayer = 004,
+				SetTag = 005,
 				//component operations
-                RemoveRenderer = 101,
-                RemoveCollider = 102,
-                AddHelperComponent = 199
-            }
+				RemoveRenderer = 101,
+				RemoveCollider = 102,
+				AddHelperComponent = 199
+			}
 
-            public ConditionType condition = ConditionType.Always;
-            public string conditionString = "";
-            public ActionType action = ActionType.None;
-        }
+			public ConditionType condition = ConditionType.Always;
+			public string conditionString = "";
+			public ActionType action = ActionType.None;
+			public string actionString = "";
+			public bool applyToChildren = false;
 
-        public bool enabled = true;
+			public void ApplyRecursively(Transform obj)
+			{
+				bool applied = ApplyOnObject(obj);
+				//Check if the object itself wasn't destroyed
+				if(obj != null)
+				{
+					if(!(applied && applyToChildren))
+					{
+						foreach(Transform child in obj)
+						{
+							ApplyRecursively(child);
+						}
+					}
+				}
+			}
+
+			public bool ApplyOnObject(Transform obj)
+			{
+				if(CheckCondition(obj))
+				{
+					if(applyToChildren)
+					{
+						foreach(var t in obj.GetComponentsInChildren<Transform>(true))
+						{
+							PerformAction(t);
+						}
+					}
+					else
+					{
+						PerformAction(obj);
+					}
+					return true;
+				}
+				return false;
+			}
+
+			public bool CheckCondition(Transform obj)
+			{
+				switch(condition)
+				{
+					case ConditionType.Always:
+						return true;
+					case ConditionType.NameStartsWith:
+						return obj.name.StartsWith(conditionString);
+					case ConditionType.NameEndsWith:
+						return obj.name.EndsWith(conditionString);
+					case ConditionType.NameContains:
+						return obj.name.Contains(conditionString);
+					case ConditionType.NameMatchesRegex:
+						return System.Text.RegularExpressions.Regex.IsMatch(obj.name, conditionString);
+					default:
+						Debug.LogError($"Model processor condition of type '{condition}' is not implemented.");
+						return false;
+				}
+			}
+
+			public void PerformAction(Transform obj)
+			{
+				switch(action)
+				{
+					case ActionType.SetGameObjectInactive:
+						obj.gameObject.SetActive(false);
+						break;
+					case ActionType.DestroyGameObject:
+						Object.DestroyImmediate(obj);
+						break;
+					case ActionType.MarkStatic:
+						//Set all static flags
+						GameObjectUtility.SetStaticEditorFlags(obj.gameObject, (StaticEditorFlags)~0);
+						break;
+					case ActionType.SetLayer:
+						obj.gameObject.layer = LayerMask.NameToLayer(actionString);
+						break;
+					case ActionType.SetTag:
+						obj.gameObject.tag = actionString;
+						break;
+					case ActionType.RemoveRenderer:
+						if(obj.TryGetComponent<MeshFilter>(out var filter))
+							Object.DestroyImmediate(filter);
+						if(obj.TryGetComponent<Renderer>(out var renderer))
+							Object.DestroyImmediate(renderer);
+						break;
+					case ActionType.RemoveCollider:
+						if(obj.TryGetComponent<Collider>(out var collider))
+							Object.DestroyImmediate(collider);
+						break;
+					case ActionType.AddHelperComponent:
+						var type = System.Type.GetType("HelperComponent");
+						if(type != null)
+						{
+							obj.gameObject.AddComponent(type);
+						}
+						break;
+					default:
+						Debug.LogError($"Model processor action of type '{action}' is not implemented.");
+						break;
+				}
+			}
+		}
+
+		public bool enabled = true;
 		public Rule[] rules = Array.Empty<Rule>();
 
 		public void ApplyRulesToModel(GameObject model)
 		{
 			if(!enabled) return;
-			ApplyRulesRecursively(model.transform);
-		}
-
-		private void ApplyRulesRecursively(Transform obj)
-		{
-			ApplyRules(obj);
-			if(obj == null)
-			{
-				//Object was destroyed
-				Debug.Log("object was destroyed: "+obj.name);
-				return;
-			}
-			foreach(Transform child in obj)
-			{
-				ApplyRulesRecursively(child);
-			}
-		}
-
-		private void ApplyRules(Transform obj)
-		{
 			foreach(var rule in rules)
 			{
-				if(CheckCondition(obj, rule))
-				{
-					ApplyActions(obj, rule);
-				}
+				rule.ApplyRecursively(model.transform);
 			}
 		}
-
-		private bool CheckCondition(Transform obj, Rule rule)
-		{
-			switch(rule.condition)
-			{
-				case Rule.ConditionType.Always:
-					return true;
-				case Rule.ConditionType.NameStartsWith:
-					return obj.name.StartsWith(rule.conditionString);
-				case Rule.ConditionType.NameEndsWith:
-					return obj.name.EndsWith(rule.conditionString);
-				case Rule.ConditionType.NameContains:
-					return obj.name.Contains(rule.conditionString);
-				default:
-					Debug.LogError($"Model processor condition of type '{rule.condition}' is not implemented.");
-					return false;
-			}
-		}
-
-		private void ApplyActions(Transform obj, Rule rule)
-		{
-			switch(rule.action)
-			{
-				case Rule.ActionType.SetGameObjectInactive:
-					obj.gameObject.SetActive(false);
-					break;
-				case Rule.ActionType.DestroyGameObject:
-					Object.DestroyImmediate(obj);
-					break;
-				case Rule.ActionType.MarkStatic:
-					//Set all static flags
-					GameObjectUtility.SetStaticEditorFlags(obj.gameObject, (StaticEditorFlags)~0);
-					break;
-				case Rule.ActionType.RemoveRenderer:
-					var renderer = obj.GetComponent<Renderer>();
-					if(renderer != null)
-						Object.DestroyImmediate(renderer);
-					break;
-				case Rule.ActionType.RemoveCollider:
-					var collider = obj.GetComponent<Collider>();
-					if(collider != null)
-						Object.DestroyImmediate(collider);
-					break;
-				case Rule.ActionType.AddHelperComponent:
-					var type = System.Type.GetType("HelperComponent");
-					if(type != null)
-					{
-						obj.gameObject.AddComponent(type);
-					}
-					break;
-				default:
-					Debug.LogError($"Model processor action of type '{rule.action}' is not implemented.");
-					break;
-			}
-		}
-    }
+	}
 }
