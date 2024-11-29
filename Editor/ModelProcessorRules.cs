@@ -32,7 +32,11 @@ namespace ModelProcessor.Editor
 				//component operations
 				RemoveRenderer = 101,
 				RemoveCollider = 102,
-				AddHelperComponent = 199
+				AddHelperComponent = 199,
+				//rendering operations
+				SetCastShadowsMode = 201,
+				SetReceiveShadowsMode = 202,
+				SetLightmapScale = 203,
 			}
 
 			public ConditionType condition = ConditionType.Always;
@@ -120,7 +124,7 @@ namespace ModelProcessor.Editor
 					case ActionType.RemoveRenderer:
 						if(obj.TryGetComponent<MeshFilter>(out var filter))
 							Object.DestroyImmediate(filter);
-						if(obj.TryGetComponent<Renderer>(out var renderer))
+						if(obj.TryGetComponent(out Renderer renderer))
 							Object.DestroyImmediate(renderer);
 						break;
 					case ActionType.RemoveCollider:
@@ -132,6 +136,27 @@ namespace ModelProcessor.Editor
 						if(type != null)
 						{
 							obj.gameObject.AddComponent(type);
+						}
+						break;
+					case ActionType.SetCastShadowsMode:
+						if(obj.TryGetComponent(out renderer))
+						{
+							var mode = (UnityEngine.Rendering.ShadowCastingMode)Enum.Parse(typeof(UnityEngine.Rendering.ShadowCastingMode), actionString);
+							renderer.shadowCastingMode = mode;
+						}
+						break;
+					case ActionType.SetReceiveShadowsMode:
+						if(obj.TryGetComponent(out renderer))
+						{
+							renderer.receiveShadows = bool.Parse(actionString);
+						}
+						break;
+					case ActionType.SetLightmapScale:
+						if(obj.TryGetComponent(out renderer))
+						{
+							SerializedObject so = new SerializedObject(renderer);
+							so.FindProperty("m_ScaleInLightmap").floatValue = float.Parse(actionString);
+							so.ApplyModifiedProperties();
 						}
 						break;
 					default:
