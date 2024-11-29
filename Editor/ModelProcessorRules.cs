@@ -59,7 +59,10 @@ namespace ModelProcessor.Editor
 				HasSkinnedMesh = 22,
 				HasCollider = 25,
 				HasLight = 26,
-				HasCamera = 27
+				HasCamera = 27,
+				IsEmpty = 28,
+				[InspectorName("Is Empty (No Children)")]
+				IsEmptyWithoutChildren = 29,
 			}
 
 			public enum ActionType : int
@@ -173,6 +176,10 @@ namespace ModelProcessor.Editor
 						return obj.gameObject.TryGetComponent<Light>(out _);
 					case ConditionType.HasCamera:
 						return obj.gameObject.TryGetComponent<Camera>(out _);
+					case ConditionType.IsEmpty:
+						return obj.gameObject.GetComponents<Component>().Length == 1;
+					case ConditionType.IsEmptyWithoutChildren:
+						return obj.gameObject.GetComponents<Component>().Length == 1 && obj.gameObject.transform.childCount == 0;
 					default:
 						Debug.LogError($"Model processor condition of type '{condition}' is not implemented.");
 						return false;
