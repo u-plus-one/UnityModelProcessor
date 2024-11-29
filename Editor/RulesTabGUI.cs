@@ -2,7 +2,7 @@
 
 namespace ModelProcessor.Editor
 {
-	public class ModelProcessorRulesTab
+	public class RulesTabGUI
 	{
 		public SerializedObject extraDataSerializedObject;
 

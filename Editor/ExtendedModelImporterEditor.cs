@@ -31,7 +31,7 @@ namespace ModelProcessor.Editor
 
 		private object[] tabs;
 		private int activeTabIndex;
-		private ModelProcessorRulesTab rulesTab;
+		private RulesTabGUI rulesTabGui;
 
 		private MultiObjectState blenderModelState;
 
@@ -50,14 +50,14 @@ namespace ModelProcessor.Editor
 		{
 			//Create the tabs
 			var param = new object[] { this };
-			rulesTab = new ModelProcessorRulesTab();
+			rulesTabGui = new RulesTabGUI();
 			tabs = new object[]
 			{
 				Activator.CreateInstance(Type.GetType("UnityEditor.ModelImporterModelEditor, UnityEditor"), param),
 				Activator.CreateInstance(Type.GetType("UnityEditor.ModelImporterRigEditor, UnityEditor"), param),
 				Activator.CreateInstance(Type.GetType("UnityEditor.ModelImporterClipEditor, UnityEditor"), param),
 				Activator.CreateInstance(Type.GetType("UnityEditor.ModelImporterMaterialEditor, UnityEditor"), param),
-				rulesTab
+				rulesTabGui
 			};
 
 			foreach(var tab in tabs)
@@ -94,7 +94,7 @@ namespace ModelProcessor.Editor
 			serializedObject.Update();
 			extraDataSerializedObject?.Update();
 
-			rulesTab.extraDataSerializedObject = extraDataSerializedObject;
+			rulesTabGui.extraDataSerializedObject = extraDataSerializedObject;
 
 			//Draw the tab header
 			DrawTabHeader();

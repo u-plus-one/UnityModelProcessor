@@ -1,4 +1,3 @@
-using NUnit.Framework;
 using System;
 using System.Collections.Generic;
 using UnityEditor;
@@ -8,7 +7,7 @@ using Object = UnityEngine.Object;
 namespace ModelProcessor.Editor
 {
 	[System.Serializable]
-	public class ModelProcessorRules
+	public class RuleSet
 	{
 		public struct PartInfo
 		{

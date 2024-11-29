@@ -16,7 +16,7 @@ namespace ModelProcessor.Editor
 		[Tooltip("Factor to multiply the light range by")]
 		public float lightRangeFactor = 0.1f;
 
-		public ModelProcessorRules rules = new ModelProcessorRules();
+		public RuleSet ruleSet = new RuleSet();
 
 		public static ModelProcessorSettings FromJson(string userDataJson)
 		{
