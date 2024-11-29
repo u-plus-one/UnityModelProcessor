@@ -1,4 +1,6 @@
+using NUnit.Framework;
 using System;
+using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
 using Object = UnityEngine.Object;
@@ -11,6 +13,7 @@ namespace ModelProcessor.Editor
 		public struct PartInfo
 		{
 			public readonly GameObject gameObject;
+			public readonly string name;
 			public readonly string hierarchyPath;
 			public readonly int childDepth;
 
@@ -18,6 +21,7 @@ namespace ModelProcessor.Editor
 			{
 				var t = g.transform;
 				gameObject = g;
+				name = g.name;
 				childDepth = 0;
 				hierarchyPath = t.name;
 				while(t.parent != null)
@@ -104,7 +108,12 @@ namespace ModelProcessor.Editor
 				{
 					if(!(applied && applyToChildren))
 					{
-						foreach(Transform child in obj.gameObject.transform)
+						var children = new List<Transform>();
+						for (int i = 0; i < obj.gameObject.transform.childCount; i++)
+						{
+							children.Add(obj.gameObject.transform.GetChild(i));
+						}
+						foreach(var child in children)
 						{
 							ApplyRecursively(new PartInfo(child.gameObject));
 						}
@@ -122,12 +131,12 @@ namespace ModelProcessor.Editor
 					{
 						foreach(var child in obj.gameObject.GetComponentsInChildren<Transform>(true))
 						{
-							PerformAction(child.gameObject);
+							PerformAction(new PartInfo(child.gameObject));
 						}
 					}
 					else
 					{
-						PerformAction(obj.gameObject);
+						PerformAction(new PartInfo(obj.gameObject));
 					}
 					return true;
 				}
@@ -177,84 +186,84 @@ namespace ModelProcessor.Editor
 					case ConditionType.HasCamera:
 						return obj.gameObject.TryGetComponent<Camera>(out _);
 					case ConditionType.IsEmpty:
-						return obj.gameObject.GetComponents<Component>().Length == 1;
+						return obj.childDepth > 0 && obj.gameObject.GetComponents<Component>().Length == 1;
 					case ConditionType.IsEmptyWithoutChildren:
-						return obj.gameObject.GetComponents<Component>().Length == 1 && obj.gameObject.transform.childCount == 0;
+						return obj.childDepth > 0 && obj.gameObject.GetComponents<Component>().Length == 1 && obj.gameObject.transform.childCount == 0;
 					default:
 						Debug.LogError($"Model processor condition of type '{condition}' is not implemented.");
 						return false;
 				}
 			}
 
-			private void PerformAction(GameObject obj)
+			private void PerformAction(PartInfo part)
 			{
 				switch(action)
 				{
 					case ActionType.None:
 						break;
 					case ActionType.SetGameObjectInactive:
-						obj.gameObject.SetActive(false);
+						part.gameObject.SetActive(false);
 						break;
 					case ActionType.DestroyGameObject:
-						Object.DestroyImmediate(obj);
+						Object.DestroyImmediate(part.gameObject);
 						break;
 					case ActionType.MarkStatic:
 						//Set all static flags
-						GameObjectUtility.SetStaticEditorFlags(obj.gameObject, (StaticEditorFlags)~0);
+						GameObjectUtility.SetStaticEditorFlags(part.gameObject, (StaticEditorFlags)~0);
 						break;
 					case ActionType.SetLayer:
-						obj.gameObject.layer = LayerMask.NameToLayer(actionString);
+						part.gameObject.layer = LayerMask.NameToLayer(actionString);
 						break;
 					case ActionType.SetTag:
-						obj.gameObject.tag = actionString;
+						part.gameObject.tag = actionString;
 						break;
 					case ActionType.DestroyChildObjects:
-						foreach(Transform child in obj.transform)
+						foreach(Transform child in part.gameObject.transform)
 						{
 							Object.DestroyImmediate(child.gameObject);
 						}
 						break;
 					case ActionType.SetName:
-						obj.name = actionString;
+						part.gameObject.name = actionString;
 						break;
 					case ActionType.PrependName:
-						obj.name = actionString + obj.name;
+						part.gameObject.name = actionString + part.gameObject.name;
 						break;
 					case ActionType.AppendName:
-						obj.name += actionString;
+						part.gameObject.name += actionString;
 						break;
 					case ActionType.RemoveRenderer:
-						if(obj.TryGetComponent<MeshFilter>(out var filter))
+						if(part.gameObject.TryGetComponent<MeshFilter>(out var filter))
 							Object.DestroyImmediate(filter);
-						if(obj.TryGetComponent(out Renderer renderer))
+						if(part.gameObject.TryGetComponent(out Renderer renderer))
 							Object.DestroyImmediate(renderer);
 						break;
 					case ActionType.RemoveCollider:
-						if(obj.TryGetComponent<Collider>(out var collider))
+						if(part.gameObject.TryGetComponent<Collider>(out var collider))
 							Object.DestroyImmediate(collider);
 						break;
 					case ActionType.AddHelperComponent:
 						var type = System.Type.GetType("HelperComponent");
 						if(type != null)
 						{
-							obj.gameObject.AddComponent(type);
+							part.gameObject.AddComponent(type);
 						}
 						break;
 					case ActionType.SetCastShadowsMode:
-						if(obj.TryGetComponent(out renderer))
+						if(part.gameObject.TryGetComponent(out renderer))
 						{
 							var mode = (UnityEngine.Rendering.ShadowCastingMode)Enum.Parse(typeof(UnityEngine.Rendering.ShadowCastingMode), actionString);
 							renderer.shadowCastingMode = mode;
 						}
 						break;
 					case ActionType.SetReceiveShadowsMode:
-						if(obj.TryGetComponent(out renderer))
+						if(part.gameObject.TryGetComponent(out renderer))
 						{
 							renderer.receiveShadows = bool.Parse(actionString);
 						}
 						break;
 					case ActionType.SetLightmapScale:
-						if(obj.TryGetComponent(out renderer))
+						if(part.gameObject.TryGetComponent(out renderer))
 						{
 							SerializedObject so = new SerializedObject(renderer);
 							so.FindProperty("m_ScaleInLightmap").floatValue = float.Parse(actionString);
