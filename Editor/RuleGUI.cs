@@ -1,6 +1,7 @@
 using System.Globalization;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.Rendering;
 
 namespace ModelProcessor.Editor
@@ -8,23 +9,57 @@ namespace ModelProcessor.Editor
 	[CustomPropertyDrawer(typeof(Rule))]
 	public class RuleGUI : PropertyDrawer
 	{
+		private static GUIStyle headerStyle = null;
+
 		public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
 		{
-			var conditionLine = new Rect(position.x, position.y, position.width, EditorGUIUtility.singleLineHeight);
+			if(headerStyle == null) headerStyle = new GUIStyle(EditorStyles.toolbar) { fixedHeight = 0 };
+
+			position.xMin -= 8;
+
+			var boxPosition = position;
+			boxPosition.xMin -= 2;
+			boxPosition.xMax += 2;
+			GUI.Box(boxPosition, GUIContent.none, EditorStyles.helpBox);
+
+			var headerLine = new Rect(position.x, position.y, position.width, EditorGUIUtility.singleLineHeight);
+			var conditionLine = headerLine;
+			conditionLine.y += EditorGUIUtility.singleLineHeight + EditorGUIUtility.standardVerticalSpacing;
 			var actionLine = conditionLine;
 			actionLine.y += EditorGUIUtility.singleLineHeight + EditorGUIUtility.standardVerticalSpacing;
 			var actionLine2 = actionLine;
 			actionLine2.y += EditorGUIUtility.singleLineHeight + EditorGUIUtility.standardVerticalSpacing;
 
 			EditorGUIUtility.labelWidth = 60;
+
+			//Header
+			EditorGUI.LabelField(headerLine, property.displayName, EditorStyles.boldLabel);
+
+			//Condition line
 			Split(conditionLine, 220, out var conditionTypePos, out var conditionParamPos);
 			SplitRight(conditionParamPos, 50, out conditionParamPos, out var conditionInvertPos);
-			EditorGUI.PropertyField(conditionTypePos, property.FindPropertyRelative(nameof(Rule.condition)));
+
+			//Condition type selector
+			EditorGUI.BeginChangeCheck();
+			var conditionTypeProp = property.FindPropertyRelative(nameof(Rule.condition));
+			var lastConditionType = (Rule.ConditionType)conditionTypeProp.intValue;
+			EditorGUI.PropertyField(conditionTypePos, conditionTypeProp);
+			if(EditorGUI.EndChangeCheck())
+			{
+				OnConditionTypeChanged(lastConditionType, (Rule.ConditionType)conditionTypeProp.intValue, property);
+			}
+
+			//Condition parameter
 			DrawConditionParameter(conditionParamPos, property);
 			var invert = property.FindPropertyRelative(nameof(Rule.invertCondition));
 			invert.boolValue = GUI.Toggle(conditionInvertPos, invert.boolValue, new GUIContent("Invert"), EditorStyles.miniButton);
+
+
+
+			//Action line
 			Split(actionLine, 220, out var actionTypePos, out var actionParamPos);
 
+			//Action type selector
 			EditorGUI.BeginChangeCheck();
 			var actionTypeProp = property.FindPropertyRelative(nameof(Rule.action));
 			var lastActionType = (Rule.ActionType)actionTypeProp.intValue;
@@ -34,10 +69,29 @@ namespace ModelProcessor.Editor
 				OnActionTypeChanged(lastActionType, (Rule.ActionType)actionTypeProp.intValue, property);
 			}
 
-
+			//Action parameter
 			DrawActionParameter(actionParamPos, property);
 			EditorGUIUtility.labelWidth = 120;
 			EditorGUI.PropertyField(actionLine2, property.FindPropertyRelative(nameof(Rule.applyToChildren)));
+		}
+
+		private void OnConditionTypeChanged(Rule.ConditionType lastType, Rule.ConditionType newType, SerializedProperty property)
+		{
+			bool wasNameAction = (int)lastType >= 10 && (int)lastType < 20;
+			bool isNameAction = (int)newType >= 10 && (int)newType < 20;
+			if(wasNameAction && isNameAction)
+			{
+				//Retain the current value
+				return;
+			}
+			string defaultValue;
+			switch(lastType)
+			{
+				default:
+					defaultValue = "";
+					break;
+			}
+			property.FindPropertyRelative(nameof(Rule.conditionParam)).stringValue = defaultValue;
 		}
 
 		private void OnActionTypeChanged(Rule.ActionType lastType, Rule.ActionType newType, SerializedProperty property)
@@ -62,18 +116,20 @@ namespace ModelProcessor.Editor
 					defaultValue = "";
 					break;
 			}
-			property.FindPropertyRelative(nameof(Rule.actionStringParam)).stringValue = defaultValue;
+			property.FindPropertyRelative(nameof(Rule.actionParam)).stringValue = defaultValue;
 		}
 
 		public override float GetPropertyHeight(SerializedProperty property, GUIContent label)
 		{
-			int lines = 3;
+			int lines = 4;
 			return lines * EditorGUIUtility.singleLineHeight + (lines - 1) * EditorGUIUtility.standardVerticalSpacing;
 		}
 
 		private void DrawConditionParameter(Rect position, SerializedProperty prop)
 		{
 			var conditionType = (Rule.ConditionType)prop.FindPropertyRelative(nameof(Rule.condition)).intValue;
+			var conditionParam = prop.FindPropertyRelative(nameof(Rule.conditionParam));
+			string value = conditionParam.stringValue;
 			switch(conditionType)
 			{
 				case Rule.ConditionType.NameStartsWith:
@@ -84,22 +140,23 @@ namespace ModelProcessor.Editor
 				case Rule.ConditionType.PathEndsWith:
 				case Rule.ConditionType.PathContains:
 				case Rule.ConditionType.PathMatchesRegex:
-					EditorGUI.PropertyField(position, prop.FindPropertyRelative(nameof(Rule.conditionString)), GUIContent.none);
+					value = EditorGUI.TextField(position, value);
 					break;
 				case Rule.ConditionType.ChildDepthEquals:
 				case Rule.ConditionType.ChildDepthGreaterThan:
 				case Rule.ConditionType.ChildDepthGreaterOrEqual:
 				case Rule.ConditionType.ChildDepthLessThan:
 				case Rule.ConditionType.ChildDepthLessOrEqual:
-					EditorGUI.PropertyField(position, prop.FindPropertyRelative(nameof(Rule.conditionInt)), GUIContent.none);
+					value = Mathf.Clamp(EditorGUI.IntField(position, AsInt(value)), 0, 99).ToString();
 					break;
 			}
+			conditionParam.stringValue = value;
 		}
 
 		private void DrawActionParameter(Rect position, SerializedProperty prop)
 		{
 			var actionType = (Rule.ActionType)prop.FindPropertyRelative(nameof(Rule.action)).intValue;
-			var paramProp = prop.FindPropertyRelative(nameof(Rule.actionStringParam));
+			var paramProp = prop.FindPropertyRelative(nameof(Rule.actionParam));
 			string value = paramProp.stringValue;
 			switch(actionType)
 			{

@@ -33,34 +33,35 @@ namespace ModelProcessor.Editor
 		public enum ConditionType : int
 		{
 			Always = 0,
+			RootObject = 1,
 			//name conditions
-			NameStartsWith = 1,
-			NameEndsWith = 2,
-			NameContains = 3,
-			NameMatchesRegex = 4,
-			PathStartsWith = 5,
-			PathEndsWith = 6,
-			PathContains = 7,
-			PathMatchesRegex = 8,
+			NameStartsWith = 11,
+			NameEndsWith = 12,
+			NameContains = 13,
+			NameMatchesRegex = 14,
+			PathStartsWith = 15,
+			PathEndsWith = 16,
+			PathContains = 17,
+			PathMatchesRegex = 18,
 			//component conditions
 			[InspectorName("Child Depth ==")]
-			ChildDepthEquals = 11,
+			ChildDepthEquals = 21,
 			[InspectorName("Child Depth >")]
-			ChildDepthGreaterThan = 12,
+			ChildDepthGreaterThan = 22,
 			[InspectorName("Child Depth >=")]
-			ChildDepthGreaterOrEqual = 13,
+			ChildDepthGreaterOrEqual = 23,
 			[InspectorName("Child Depth <")]
-			ChildDepthLessThan = 14,
+			ChildDepthLessThan = 24,
 			[InspectorName("Child Depth <=")]
-			ChildDepthLessOrEqual = 15,
-			HasMesh = 21,
-			HasSkinnedMesh = 22,
-			HasCollider = 25,
-			HasLight = 26,
-			HasCamera = 27,
-			IsEmpty = 28,
+			ChildDepthLessOrEqual = 25,
+			HasMesh = 31,
+			HasSkinnedMesh = 32,
+			HasCollider = 35,
+			HasLight = 36,
+			HasCamera = 37,
+			IsEmpty = 38,
 			[InspectorName("Is Empty (No Children)")]
-			IsEmptyWithoutChildren = 29,
+			IsEmptyWithoutChildren = 39,
 		}
 
 		public enum ActionType : int
@@ -90,11 +91,10 @@ namespace ModelProcessor.Editor
 
 		public ConditionType condition = ConditionType.Always;
 		public bool invertCondition;
-		public string conditionString = "";
-		public int conditionInt;
+		public string conditionParam = "";
 
 		public ActionType action = ActionType.None;
-		public string actionStringParam = "";
+		public string actionParam = "";
 		public bool applyToChildren = false;
 
 		public void ApplyToModel(GameObject modelRoot)
@@ -151,32 +151,34 @@ namespace ModelProcessor.Editor
 			{
 				case ConditionType.Always:
 					return true;
+				case ConditionType.RootObject:
+					return obj.childDepth == 0;
 				case ConditionType.NameStartsWith:
-					return obj.gameObject.name.StartsWith(conditionString);
+					return obj.gameObject.name.StartsWith(conditionParam);
 				case ConditionType.NameEndsWith:
-					return obj.gameObject.name.EndsWith(conditionString);
+					return obj.gameObject.name.EndsWith(conditionParam);
 				case ConditionType.NameContains:
-					return obj.gameObject.name.Contains(conditionString);
+					return obj.gameObject.name.Contains(conditionParam);
 				case ConditionType.NameMatchesRegex:
-					return System.Text.RegularExpressions.Regex.IsMatch(obj.gameObject.name, conditionString);
+					return System.Text.RegularExpressions.Regex.IsMatch(obj.gameObject.name, conditionParam);
 				case ConditionType.PathStartsWith:
-					return obj.hierarchyPath.StartsWith(conditionString);
+					return obj.hierarchyPath.StartsWith(conditionParam);
 				case ConditionType.PathEndsWith:
-					return obj.hierarchyPath.EndsWith(conditionString);
+					return obj.hierarchyPath.EndsWith(conditionParam);
 				case ConditionType.PathContains:
-					return obj.hierarchyPath.Contains(conditionString);
+					return obj.hierarchyPath.Contains(conditionParam);
 				case ConditionType.PathMatchesRegex:
-					return System.Text.RegularExpressions.Regex.IsMatch(obj.hierarchyPath, conditionString);
+					return System.Text.RegularExpressions.Regex.IsMatch(obj.hierarchyPath, conditionParam);
 				case ConditionType.ChildDepthEquals:
-					return obj.childDepth == int.Parse(conditionString);
+					return obj.childDepth == int.Parse(conditionParam);
 				case ConditionType.ChildDepthGreaterThan:
-					return obj.childDepth > int.Parse(conditionString);
+					return obj.childDepth > int.Parse(conditionParam);
 				case ConditionType.ChildDepthGreaterOrEqual:
-					return obj.childDepth >= int.Parse(conditionString);
+					return obj.childDepth >= int.Parse(conditionParam);
 				case ConditionType.ChildDepthLessThan:
-					return obj.childDepth < int.Parse(conditionString);
+					return obj.childDepth < int.Parse(conditionParam);
 				case ConditionType.ChildDepthLessOrEqual:
-					return obj.childDepth <= int.Parse(conditionString);
+					return obj.childDepth <= int.Parse(conditionParam);
 				case ConditionType.HasMesh:
 					return obj.gameObject.TryGetComponent<Renderer>(out _);
 				case ConditionType.HasSkinnedMesh:
@@ -214,13 +216,13 @@ namespace ModelProcessor.Editor
 					GameObjectUtility.SetStaticEditorFlags(part.gameObject, (StaticEditorFlags)~0);
 					break;
 				case ActionType.SetStaticFlags:
-					GameObjectUtility.SetStaticEditorFlags(part.gameObject, (StaticEditorFlags)int.Parse(actionStringParam));
+					GameObjectUtility.SetStaticEditorFlags(part.gameObject, (StaticEditorFlags)int.Parse(actionParam));
 					break;
 				case ActionType.SetLayer:
-					part.gameObject.layer = LayerMask.NameToLayer(actionStringParam);
+					part.gameObject.layer = LayerMask.NameToLayer(actionParam);
 					break;
 				case ActionType.SetTag:
-					part.gameObject.tag = !string.IsNullOrWhiteSpace(actionStringParam) ? actionStringParam : "Untagged";
+					part.gameObject.tag = !string.IsNullOrWhiteSpace(actionParam) ? actionParam : "Untagged";
 					break;
 				case ActionType.DestroyChildObjects:
 					foreach(Transform child in part.gameObject.transform)
@@ -229,17 +231,17 @@ namespace ModelProcessor.Editor
 					}
 					break;
 				case ActionType.SetName:
-					if(string.IsNullOrEmpty(actionStringParam))
+					if(string.IsNullOrEmpty(actionParam))
 					{
 						Debug.LogError("Attempted to set game object to an empty name.");
 					}
-					part.gameObject.name = actionStringParam;
+					part.gameObject.name = actionParam;
 					break;
 				case ActionType.PrependName:
-					part.gameObject.name = actionStringParam + part.gameObject.name;
+					part.gameObject.name = actionParam + part.gameObject.name;
 					break;
 				case ActionType.AppendName:
-					part.gameObject.name += actionStringParam;
+					part.gameObject.name += actionParam;
 					break;
 				case ActionType.RemoveRenderer:
 					if(part.gameObject.TryGetComponent<MeshFilter>(out var filter))
@@ -261,21 +263,21 @@ namespace ModelProcessor.Editor
 				case ActionType.SetCastShadowsMode:
 					if(part.gameObject.TryGetComponent(out renderer))
 					{
-						var mode = (UnityEngine.Rendering.ShadowCastingMode)System.Enum.Parse(typeof(UnityEngine.Rendering.ShadowCastingMode), actionStringParam);
+						var mode = (UnityEngine.Rendering.ShadowCastingMode)System.Enum.Parse(typeof(UnityEngine.Rendering.ShadowCastingMode), actionParam);
 						renderer.shadowCastingMode = mode;
 					}
 					break;
 				case ActionType.SetReceiveShadowsMode:
 					if(part.gameObject.TryGetComponent(out renderer))
 					{
-						renderer.receiveShadows = bool.Parse(actionStringParam);
+						renderer.receiveShadows = bool.Parse(actionParam);
 					}
 					break;
 				case ActionType.SetLightmapScale:
 					if(part.gameObject.TryGetComponent(out renderer))
 					{
 						SerializedObject so = new SerializedObject(renderer);
-						so.FindProperty("m_ScaleInLightmap").floatValue = float.Parse(actionStringParam);
+						so.FindProperty("m_ScaleInLightmap").floatValue = float.Parse(actionParam);
 						so.ApplyModifiedProperties();
 					}
 					break;
