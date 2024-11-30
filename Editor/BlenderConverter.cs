@@ -68,10 +68,14 @@ namespace ModelProcessor.Editor
 				else
 				{
 					var snapshot = transformSnapshots[transform];
-					if(transform.TryGetComponent<Light>(out _)) continue; //skip light transforms
+					if (transform.TryGetComponent<Light>(out _))
+					{
+						FixCameraTransforms(transform, flipZ);
+						continue;
+					}
 					if (transform.TryGetComponent<Camera>(out _))
 					{
-						FixCameraRotation(transform, flipZ);
+						FixCameraTransforms(transform, flipZ);
 						continue;
 					}
 					var transformationMatrix = ApplyTransformFix(transform, snapshot.position, snapshot.rotation, flipZ);
@@ -93,7 +97,7 @@ namespace ModelProcessor.Editor
 			}
 		}
 
-		public static void FixCameraRotation(Transform t, bool flipZ)
+		public static void FixCameraTransforms(Transform t, bool flipZ)
 		{
             if (flipZ)
             {
