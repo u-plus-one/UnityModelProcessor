@@ -24,6 +24,16 @@ namespace ModelProcessor.Editor
 			extraDataSerializedObject.ApplyModifiedProperties();
 		}
 
+		public void PreApply()
+		{
+
+		}
+
+		public void PostApply()
+		{
+
+		}
+
 		private void DrawRuleSet()
 		{
 			var set = extraDataSerializedObject.FindProperty(nameof(ModelProcessorSettings.ruleSet));

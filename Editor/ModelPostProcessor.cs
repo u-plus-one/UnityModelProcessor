@@ -1,5 +1,7 @@
 ﻿using System.IO;
 using UnityEditor;
+using UnityEditor.PackageManager;
+using UnityEditor.PackageManager.Requests;
 using UnityEngine;
 
 namespace ModelProcessor.Editor
@@ -9,6 +11,46 @@ namespace ModelProcessor.Editor
 		private const string BLENDER_CREATOR_ID = "Blender (stable FBX IO)";
 
 		private static readonly byte[] fileHeaderData = new byte[512];
+
+		public static bool IsEmbeddedPackage { get; private set; } = false;
+
+		public static bool VerboseLogging
+		{
+			get => EditorPrefs.GetBool("ModelProcessorVerboseLogging", false);
+			set => EditorPrefs.SetBool("ModelProcessorVerboseLogging", value);
+		}
+
+		private static ListRequest listReq;
+
+		[InitializeOnLoadMethod]
+		private static void Init()
+		{
+			listReq = Client.List();
+			EditorApplication.update += PackageStatusCheckUpdate;
+		}
+
+		private static void PackageStatusCheckUpdate()
+		{
+			while(!listReq.IsCompleted)
+			{
+				return;
+			}
+			//Check if the package itself is embedded
+			var collection = listReq.Result;
+			foreach(var item in collection)
+			{
+				if(item.name == "com.github.u-plus-one.unitymodelprocessor")
+				{
+					IsEmbeddedPackage = item.source == PackageSource.Embedded;
+				}
+			}
+			if(!IsEmbeddedPackage)
+			{
+				//Turn off verbose logging if the package is not embedded
+				VerboseLogging = false;
+			}
+			EditorApplication.update -= PackageStatusCheckUpdate;
+		}
 
 		//Entry point for unity to process models
 		private void OnPostprocessModel(GameObject root)

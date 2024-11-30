@@ -37,13 +37,16 @@ namespace ModelProcessor.Editor
 
 		const float SQRT2_HALF = 0.70710678f;
 		private static readonly Vector3 Z_FLIP_SCALE = new Vector3(-1, 1, -1);
+		//(-90°, 0°, 0°)
 		private static readonly Quaternion ROTATION_FIX = new Quaternion(-SQRT2_HALF, 0, 0, SQRT2_HALF);
+		//(-90°, 180°, 0°)
 		private static readonly Quaternion ROTATION_FIX_Z_FLIP = new Quaternion(0, SQRT2_HALF, SQRT2_HALF, 0);
+		//(90°, 0°, 0°)
 		private static readonly Quaternion ANIM_ROTATION_FIX = new Quaternion(SQRT2_HALF, 0, 0, SQRT2_HALF);
 
-		public static void FixTransforms(GameObject root, bool flipZ, ModelImporter modelImporter)
+		public static void FixTransforms(GameObject root, bool matchAxes, ModelImporter modelImporter)
 		{
-			//Debug.Log("Applying fix on "+root.name);
+			VerboseLog("Applying fix on "+root.name);
 			var meshes = GetUniqueMeshes(root.transform);
 
 			var transformSnapshots = new Dictionary<Transform, TransformSnapshot>();
@@ -68,13 +71,13 @@ namespace ModelProcessor.Editor
 				else
 				{
 					var snapshot = transformSnapshots[transform];
-					if(transform.TryGetComponent<Light>(out _)) continue; //skip light transforms
-					var transformationMatrix = ApplyTransformFix(transform, snapshot.position, snapshot.rotation, flipZ);
+					if(transform.TryGetComponent<Light>(out _) || transform.TryGetComponent<Camera>(out _)) continue; //skip light transforms
+					var transformationMatrix = ApplyTransformFix(transform, snapshot.position, snapshot.rotation, matchAxes);
 					deltas.Add(transform, transformationMatrix);
 				}
 			}
 
-			Quaternion rotation = flipZ ? ROTATION_FIX_Z_FLIP : ROTATION_FIX;
+			Quaternion rotation = matchAxes ? ROTATION_FIX_Z_FLIP : ROTATION_FIX;
 			Matrix4x4 matrix = Matrix4x4.Rotate(rotation);
 			foreach(var mesh in meshes)
 			{
@@ -92,6 +95,7 @@ namespace ModelProcessor.Editor
 		{
 			var bindings = AnimationUtility.GetCurveBindings(clip);
 
+			VerboseLog("Fixing animation clip: " + clip.name);
 			Dictionary<string, TransformCurves> transformCurves = new Dictionary<string, TransformCurves>();
 			foreach(var binding in bindings)
 			{
@@ -252,7 +256,7 @@ namespace ModelProcessor.Editor
 
 		private static void ApplyMeshFix(Mesh m, Matrix4x4 matrix, bool calculateTangents)
 		{
-			//Debug.Log("Fixing mesh: " + m.name);
+			VerboseLog("Fixing mesh: " + m.name);
 			var verts = m.vertices;
 			for(int i = 0; i < verts.Length; i++)
 			{
@@ -289,7 +293,7 @@ namespace ModelProcessor.Editor
 		{
 			Matrix4x4 before = t.localToWorldMatrix;
 
-			//Debug.Log("Fixing transform: " + t.name);
+			VerboseLog("Fixing transform: " + t.name);
 			t.position = storedPos;
 			t.rotation = storedRot;
 
@@ -339,7 +343,15 @@ namespace ModelProcessor.Editor
 					}
 				}
 				m.bindposes = bindposes;
-				//Debug.Log("Bindposes fixed for " + m.name);
+				VerboseLog("Bindposes fixed for " + m.name);
+			}
+		}
+
+		private static void VerboseLog(string message)
+		{
+			if(ModelPostProcessor.VerboseLogging)
+			{
+				Debug.Log("[Blender Converter] " + message);
 			}
 		}
 	}
