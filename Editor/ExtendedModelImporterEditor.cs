@@ -62,7 +62,14 @@ namespace ModelProcessor.Editor
 
 			foreach(var tab in tabs)
 			{
-				tab.GetType().GetMethod("OnEnable", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic).Invoke(tab, Array.Empty<object>());
+				try
+				{
+					tab.GetType().GetMethod("OnEnable", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic).Invoke(tab, Array.Empty<object>());
+				}
+				catch(Exception e)
+				{
+					Debug.LogException(e);
+				}
 			}
 			activeTabIndex = EditorPrefs.GetInt(GetType().Name + "ActiveEditorIndex");
 

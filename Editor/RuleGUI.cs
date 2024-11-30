@@ -1,4 +1,4 @@
-using System;
+using System.Globalization;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.Rendering;
@@ -24,10 +24,45 @@ namespace ModelProcessor.Editor
 			var invert = property.FindPropertyRelative(nameof(Rule.invertCondition));
 			invert.boolValue = GUI.Toggle(conditionInvertPos, invert.boolValue, new GUIContent("Invert"), EditorStyles.miniButton);
 			Split(actionLine, 220, out var actionTypePos, out var actionParamPos);
-			EditorGUI.PropertyField(actionTypePos, property.FindPropertyRelative(nameof(Rule.action)));
+
+			EditorGUI.BeginChangeCheck();
+			var actionTypeProp = property.FindPropertyRelative(nameof(Rule.action));
+			var lastActionType = (Rule.ActionType)actionTypeProp.intValue;
+			EditorGUI.PropertyField(actionTypePos, actionTypeProp);
+			if(EditorGUI.EndChangeCheck())
+			{
+				OnActionTypeChanged(lastActionType, (Rule.ActionType)actionTypeProp.intValue, property);
+			}
+
+
 			DrawActionParameter(actionParamPos, property);
 			EditorGUIUtility.labelWidth = 120;
 			EditorGUI.PropertyField(actionLine2, property.FindPropertyRelative(nameof(Rule.applyToChildren)));
+		}
+
+		private void OnActionTypeChanged(Rule.ActionType lastType, Rule.ActionType newType, SerializedProperty property)
+		{
+			bool wasNameAction = lastType == Rule.ActionType.SetName || lastType == Rule.ActionType.PrependName || lastType == Rule.ActionType.AppendName;
+			bool isNameAction = newType == Rule.ActionType.SetName || newType == Rule.ActionType.PrependName || newType == Rule.ActionType.AppendName;
+			if(wasNameAction && isNameAction)
+			{
+				//Retain the current value
+				return;
+			}
+			string defaultValue;
+			switch(newType)
+			{
+				case Rule.ActionType.SetTag:
+					defaultValue = "Untagged";
+					break;
+				case Rule.ActionType.SetCastShadowsMode:
+					defaultValue = ((int)ShadowCastingMode.On).ToString();
+					break;
+				default:
+					defaultValue = "";
+					break;
+			}
+			property.FindPropertyRelative(nameof(Rule.actionStringParam)).stringValue = defaultValue;
 		}
 
 		public override float GetPropertyHeight(SerializedProperty property, GUIContent label)
@@ -64,36 +99,39 @@ namespace ModelProcessor.Editor
 		private void DrawActionParameter(Rect position, SerializedProperty prop)
 		{
 			var actionType = (Rule.ActionType)prop.FindPropertyRelative(nameof(Rule.action)).intValue;
+			var paramProp = prop.FindPropertyRelative(nameof(Rule.actionStringParam));
+			string value = paramProp.stringValue;
 			switch(actionType)
 			{
 				case Rule.ActionType.SetLayer:
-					var l = prop.FindPropertyRelative(nameof(Rule.actionValueParam));
-					l.intValue = EditorGUI.LayerField(position, l.intValue);
+					value = EditorGUI.LayerField(position, AsInt(value)).ToString();
 					break;
 				case Rule.ActionType.SetTag:
-					EditorGUI.PropertyField(position, prop.FindPropertyRelative(nameof(Rule.actionStringParam)), GUIContent.none);
+					value = EditorGUI.TagField(position, value);
+					break;
+				case Rule.ActionType.SetStaticFlags:
+					StaticEditorFlags flags = (StaticEditorFlags)AsInt(value);
+					value = ((int)(object)EditorGUI.EnumFlagsField(position, flags)).ToString();
 					break;
 				case Rule.ActionType.SetName:
 				case Rule.ActionType.PrependName:
 				case Rule.ActionType.AppendName:
-					EditorGUI.PropertyField(position, prop.FindPropertyRelative(nameof(Rule.actionStringParam)), GUIContent.none);
+					value = EditorGUI.TextField(position, value);
 					break;
 				case Rule.ActionType.SetCastShadowsMode:
-					var m = prop.FindPropertyRelative(nameof(Rule.actionValueParam));
-					m.intValue = (int)(object)EditorGUI.EnumPopup(position, (ShadowCastingMode)m.intValue);
+					value = ((int)(object)EditorGUI.EnumPopup(position, (ShadowCastingMode)AsInt(value))).ToString();
 					break;
 				case Rule.ActionType.SetReceiveShadowsMode:
-					var b = prop.FindPropertyRelative(nameof(Rule.actionValueParam));
-					b.boolValue = EditorGUI.Toggle(position, b.boolValue);
+					value = EditorGUI.Toggle(position, AsBool(value, true)) ? "1" : "0";
 					break;
 				case Rule.ActionType.SetLightmapScale:
-					var s = prop.FindPropertyRelative(nameof(Rule.actionValueParam));
-					s.floatValue = EditorGUI.FloatField(position, s.floatValue);
+					value = EditorGUI.FloatField(position, AsFloat(value, 1)).ToString(CultureInfo.InvariantCulture);
 					break;
 			}
+			paramProp.stringValue = value;
 		}
 
-		private void Split(Rect input, float width, out Rect l, out Rect r)
+		private static void Split(Rect input, float width, out Rect l, out Rect r)
 		{
 			l = input;
 			l.width = width;
@@ -101,12 +139,27 @@ namespace ModelProcessor.Editor
 			r.xMin += width + 2;
 		}
 
-		private void SplitRight(Rect input, float width, out Rect l, out Rect r)
+		private static void SplitRight(Rect input, float width, out Rect l, out Rect r)
 		{
 			l = input;
 			l.xMax -= width + 2;
 			r = input;
 			r.xMin = input.xMax - width;
+		}
+
+		private static int AsInt(string s, int fallback = 0)
+		{
+			return int.TryParse(s, out var result) ? result : fallback;
+		}
+
+		private static float AsFloat(string s, float fallback = 0)
+		{
+			return float.TryParse(s, out var result) ? result : fallback;
+		}
+
+		private static bool AsBool(string s, bool fallback = false)
+		{
+			return AsInt(s, fallback ? 1 : 0) > 0;
 		}
 	}
 }

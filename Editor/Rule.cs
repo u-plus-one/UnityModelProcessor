@@ -69,21 +69,23 @@ namespace ModelProcessor.Editor
 			//game object operations
 			SetGameObjectInactive = 001,
 			DestroyGameObject = 002,
-			MarkStatic = 003,
-			SetLayer = 004,
-			SetTag = 005,
-			DestroyChildObjects = 006,
-			SetName = 007,
-			PrependName = 008,
-			AppendName = 009,
+			DestroyChildObjects = 003,
+			MarkStatic = 004,
+			SetStaticFlags = 005,
+			SetLayer = 010,
+			SetTag = 011,
+			SetName = 012,
+			PrependName = 013,
+			AppendName = 014,
 			//component operations
 			RemoveRenderer = 101,
 			RemoveCollider = 102,
-			AddHelperComponent = 199,
 			//rendering operations
 			SetCastShadowsMode = 201,
 			SetReceiveShadowsMode = 202,
 			SetLightmapScale = 203,
+			//Debug stuff
+			AddHelperComponent = 999
 		}
 
 		public ConditionType condition = ConditionType.Always;
@@ -93,7 +95,6 @@ namespace ModelProcessor.Editor
 
 		public ActionType action = ActionType.None;
 		public string actionStringParam = "";
-		public float actionValueParam;
 		public bool applyToChildren = false;
 
 		public void ApplyToModel(GameObject modelRoot)
@@ -212,11 +213,14 @@ namespace ModelProcessor.Editor
 					//Set all static flags
 					GameObjectUtility.SetStaticEditorFlags(part.gameObject, (StaticEditorFlags)~0);
 					break;
+				case ActionType.SetStaticFlags:
+					GameObjectUtility.SetStaticEditorFlags(part.gameObject, (StaticEditorFlags)int.Parse(actionStringParam));
+					break;
 				case ActionType.SetLayer:
 					part.gameObject.layer = LayerMask.NameToLayer(actionStringParam);
 					break;
 				case ActionType.SetTag:
-					part.gameObject.tag = actionStringParam;
+					part.gameObject.tag = !string.IsNullOrWhiteSpace(actionStringParam) ? actionStringParam : "Untagged";
 					break;
 				case ActionType.DestroyChildObjects:
 					foreach(Transform child in part.gameObject.transform)
@@ -225,6 +229,10 @@ namespace ModelProcessor.Editor
 					}
 					break;
 				case ActionType.SetName:
+					if(string.IsNullOrEmpty(actionStringParam))
+					{
+						Debug.LogError("Attempted to set game object to an empty name.");
+					}
 					part.gameObject.name = actionStringParam;
 					break;
 				case ActionType.PrependName:
