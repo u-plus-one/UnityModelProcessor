@@ -202,7 +202,7 @@ namespace ModelProcessor.Editor
 						if(check.changed)
 						{
 							EditorPrefs.SetInt(GetType().Name + "ActiveEditorIndex", activeTabIndex);
-							tabs[activeTabIndex].GetType().GetMethod("OnInspectorGUI").Invoke(tabs[activeTabIndex], Array.Empty<object>());
+							InvokeMethod(tabs[activeTabIndex], "OnInspectorGUI");
 						}
 					}
 					GUILayout.FlexibleSpace();
@@ -213,7 +213,7 @@ namespace ModelProcessor.Editor
 		private void DrawActiveBuiltinTab()
 		{
 			var activeTab = tabs[activeTabIndex];
-			activeTab.GetType().GetMethod("OnInspectorGUI").Invoke(activeTab, Array.Empty<object>());
+			InvokeMethod(activeTab, "OnInspectorGUI");
 		}
 
 		protected override void Apply()
@@ -226,6 +226,7 @@ namespace ModelProcessor.Editor
 
 			for(int i = 0; i < targets.Length; i++)
 			{
+				//Serialize custom settings to user data
 				var extraData = (ModelProcessorSettings)extraDataTargets[i];
 				var userData = extraData.ToJson();
 				var path = AssetDatabase.GetAssetPath(targets[i]);

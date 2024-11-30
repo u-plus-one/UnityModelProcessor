@@ -61,20 +61,12 @@ namespace ModelProcessor.Editor
 			for(int i = 0; i < transforms.Length; i++)
 			{
 				var transform = transforms[i];
-				if(transform == null || transform == root.transform) continue;
-				//Delete objects that are hidden and have no children
-				//TODO: turn this into a setting (or rule)
-				if(ShouldDeleteObject(transform))
-				{
-					Object.DestroyImmediate(transform.gameObject);
-				}
-				else
-				{
-					var snapshot = transformSnapshots[transform];
-					if(transform.TryGetComponent<Light>(out _) || transform.TryGetComponent<Camera>(out _)) continue; //skip light transforms
-					var transformationMatrix = ApplyTransformFix(transform, snapshot.position, snapshot.rotation, matchAxes);
-					deltas.Add(transform, transformationMatrix);
-				}
+				if(transform == root.transform) continue;
+
+				var snapshot = transformSnapshots[transform];
+				if(transform.TryGetComponent<Light>(out _) || transform.TryGetComponent<Camera>(out _)) continue; //skip light transforms
+				var transformationMatrix = ApplyTransformFix(transform, snapshot.position, snapshot.rotation, matchAxes);
+				deltas.Add(transform, transformationMatrix);
 			}
 
 			Quaternion rotation = matchAxes ? ROTATION_FIX_Z_FLIP : ROTATION_FIX;
@@ -220,18 +212,6 @@ namespace ModelProcessor.Editor
 				}
 			}
 			return modified;
-		}
-
-
-		private static bool ShouldDeleteObject(Transform obj)
-		{
-			bool delete = false;
-			if(obj.TryGetComponent<MeshRenderer>(out var renderer))
-			{
-				delete = !renderer.enabled;
-				delete &= obj.childCount == 0;
-			}
-			return delete;
 		}
 
 		private static List<Mesh> GetUniqueMeshes(Transform transform)
