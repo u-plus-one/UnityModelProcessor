@@ -69,7 +69,11 @@ namespace ModelProcessor.Editor
 				{
 					var snapshot = transformSnapshots[transform];
 					if(transform.TryGetComponent<Light>(out _)) continue; //skip light transforms
-					if (transform.TryGetComponent<Camera>(out _)) continue; // skip camera transforms
+					if (transform.TryGetComponent<Camera>(out _))
+					{
+						FixCameraRotation(transform, flipZ);
+						continue;
+					}
 					var transformationMatrix = ApplyTransformFix(transform, snapshot.position, snapshot.rotation, flipZ);
 					deltas.Add(transform, transformationMatrix);
 				}
@@ -88,6 +92,15 @@ namespace ModelProcessor.Editor
 				ApplyBindPoseFix(skinnedMeshRenderer, deltas, fixedSkinnedMeshes);
 			}
 		}
+
+		public static void FixCameraRotation(Transform t, bool flipZ)
+		{
+            if (flipZ)
+            {
+                t.position = Vector3.Scale(t.position, Z_FLIP_SCALE);
+				t.Rotate(new(0f, 180f, 0f), Space.World);
+            }
+        }
 
 		public static void FixAnimationClipOrientation(AnimationClip clip, bool flipZ)
 		{
