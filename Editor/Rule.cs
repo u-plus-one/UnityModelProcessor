@@ -32,35 +32,52 @@ namespace ModelProcessor.Editor
 
 		public enum ConditionType : int
 		{
+			[InspectorName("Always")]
 			Always = 0,
+			[InspectorName("Root Object")]
 			RootObject = 1,
 			//name conditions
+			[InspectorName("Name/Starts With")]
 			NameStartsWith = 11,
+			[InspectorName("Name/Ends With")]
 			NameEndsWith = 12,
+			[InspectorName("Name/Contains")]
 			NameContains = 13,
+			[InspectorName("Name/Matches Regex")]
 			NameMatchesRegex = 14,
+			[InspectorName("Path/Starts With")]
 			PathStartsWith = 15,
+			[InspectorName("Path/Ends With")]
 			PathEndsWith = 16,
+			[InspectorName("Path/Contains")]
 			PathContains = 17,
+			[InspectorName("Path/Matches Regex")]
 			PathMatchesRegex = 18,
 			//parent-child conditions
-			[InspectorName("Child Depth ==")]
+			[InspectorName("Child Depth/==")]
 			ChildDepthEquals = 21,
-			[InspectorName("Child Depth >")]
+			[InspectorName("Child Depth/>")]
 			ChildDepthGreaterThan = 22,
-			[InspectorName("Child Depth >=")]
+			[InspectorName("Child Depth/>=")]
 			ChildDepthGreaterOrEqual = 23,
-			[InspectorName("Child Depth <")]
+			[InspectorName("Child Depth/<")]
 			ChildDepthLessThan = 24,
-			[InspectorName("Child Depth <=")]
+			[InspectorName("Child Depth/<=")]
 			ChildDepthLessOrEqual = 25,
+			[InspectorName("Has Children")]
 			HasChildren = 26,
 			//component conditions
+			[InspectorName("Has Component/Mesh")]
 			HasMesh = 31,
+			[InspectorName("Has Component/Skinned Mesh")]
 			HasSkinnedMesh = 32,
+			[InspectorName("Has Component/Collider")]
 			HasCollider = 35,
+			[InspectorName("Has Component/Light")]
 			HasLight = 36,
+			[InspectorName("Has Component/Camera")]
 			HasCamera = 37,
+			[InspectorName("Is Empty")]
 			IsEmpty = 38,
 			[InspectorName("Is Empty (No Children)")]
 			IsEmptyWithoutChildren = 39,
@@ -70,24 +87,40 @@ namespace ModelProcessor.Editor
 		{
 			None = 0,
 			//game object operations
+			[InspectorName("GameObject/Set Inactive")]
 			SetGameObjectInactive = 001,
+			[InspectorName("GameObject/Destroy")]
 			DestroyGameObject = 002,
+			[InspectorName("GameObject/Destroy Children")]
 			DestroyChildObjects = 003,
+			[InspectorName("GameObject/Mark Static")]
 			MarkStatic = 004,
+			[InspectorName("GameObject/Set Static Flags")]
 			SetStaticFlags = 005,
+			[InspectorName("GameObject/Set Layer")]
 			SetLayer = 010,
+			[InspectorName("GameObject/Set Tag")]
 			SetTag = 011,
+			[InspectorName("Object Name/Set")]
 			SetName = 012,
+			[InspectorName("Object Name/Prepend")]
 			PrependName = 013,
+			[InspectorName("Object Name/Append")]
 			AppendName = 014,
 			//component operations
+			[InspectorName("Renderer/Remove")]
 			RemoveRenderer = 101,
+			[InspectorName("Collider/Remove")]
 			RemoveCollider = 102,
 			//rendering operations
+			[InspectorName("Renderer/Set Cast Shadows Mode")]
 			SetCastShadowsMode = 201,
+			[InspectorName("Renderer/Set Receive Shadows Mode")]
 			SetReceiveShadowsMode = 202,
+			[InspectorName("Renderer/Set Lightmap Scale")]
 			SetLightmapScale = 203,
 			//Debug stuff
+			[InspectorName("Debug/Add Helper Component")]
 			AddHelperComponent = 999
 		}
 
