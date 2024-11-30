@@ -37,13 +37,16 @@ namespace ModelProcessor.Editor
 
 		const float SQRT2_HALF = 0.70710678f;
 		private static readonly Vector3 Z_FLIP_SCALE = new Vector3(-1, 1, -1);
+		//(-90°, 0°, 0°)
 		private static readonly Quaternion ROTATION_FIX = new Quaternion(-SQRT2_HALF, 0, 0, SQRT2_HALF);
+		//(-90°, 180°, 0°)
 		private static readonly Quaternion ROTATION_FIX_Z_FLIP = new Quaternion(0, SQRT2_HALF, SQRT2_HALF, 0);
+		//(90°, 0°, 0°)
 		private static readonly Quaternion ANIM_ROTATION_FIX = new Quaternion(SQRT2_HALF, 0, 0, SQRT2_HALF);
 
-		public static void FixTransforms(GameObject root, bool flipZ, ModelImporter modelImporter)
+		public static void FixTransforms(GameObject root, bool matchAxes, ModelImporter modelImporter)
 		{
-			//Debug.Log("Applying fix on "+root.name);
+			VerboseLog("Applying fix on "+root.name);
 			var meshes = GetUniqueMeshes(root.transform);
 
 			var transformSnapshots = new Dictionary<Transform, TransformSnapshot>();
@@ -58,23 +61,15 @@ namespace ModelProcessor.Editor
 			for(int i = 0; i < transforms.Length; i++)
 			{
 				var transform = transforms[i];
-				if(transform == null || transform == root.transform) continue;
-				//Delete objects that are hidden and have no children
-				//TODO: turn this into a setting (or rule)
-				if(ShouldDeleteObject(transform))
-				{
-					Object.DestroyImmediate(transform.gameObject);
-				}
-				else
-				{
-					var snapshot = transformSnapshots[transform];
-					if(transform.TryGetComponent<Light>(out _)) continue; //skip light transforms
-					var transformationMatrix = ApplyTransformFix(transform, snapshot.position, snapshot.rotation, flipZ);
-					deltas.Add(transform, transformationMatrix);
-				}
+				if(transform == root.transform) continue;
+
+				var snapshot = transformSnapshots[transform];
+				if(transform.TryGetComponent<Light>(out _) || transform.TryGetComponent<Camera>(out _)) continue; //skip light transforms
+				var transformationMatrix = ApplyTransformFix(transform, snapshot.position, snapshot.rotation, matchAxes);
+				deltas.Add(transform, transformationMatrix);
 			}
 
-			Quaternion rotation = flipZ ? ROTATION_FIX_Z_FLIP : ROTATION_FIX;
+			Quaternion rotation = matchAxes ? ROTATION_FIX_Z_FLIP : ROTATION_FIX;
 			Matrix4x4 matrix = Matrix4x4.Rotate(rotation);
 			foreach(var mesh in meshes)
 			{
@@ -92,6 +87,7 @@ namespace ModelProcessor.Editor
 		{
 			var bindings = AnimationUtility.GetCurveBindings(clip);
 
+			VerboseLog("Fixing animation clip: " + clip.name);
 			Dictionary<string, TransformCurves> transformCurves = new Dictionary<string, TransformCurves>();
 			foreach(var binding in bindings)
 			{
@@ -218,18 +214,6 @@ namespace ModelProcessor.Editor
 			return modified;
 		}
 
-
-		private static bool ShouldDeleteObject(Transform obj)
-		{
-			bool delete = false;
-			if(obj.TryGetComponent<MeshRenderer>(out var renderer))
-			{
-				delete = !renderer.enabled;
-				delete &= obj.childCount == 0;
-			}
-			return delete;
-		}
-
 		private static List<Mesh> GetUniqueMeshes(Transform transform)
 		{
 			var list = new List<Mesh>();
@@ -252,7 +236,7 @@ namespace ModelProcessor.Editor
 
 		private static void ApplyMeshFix(Mesh m, Matrix4x4 matrix, bool calculateTangents)
 		{
-			//Debug.Log("Fixing mesh: " + m.name);
+			VerboseLog("Fixing mesh: " + m.name);
 			var verts = m.vertices;
 			for(int i = 0; i < verts.Length; i++)
 			{
@@ -289,7 +273,7 @@ namespace ModelProcessor.Editor
 		{
 			Matrix4x4 before = t.localToWorldMatrix;
 
-			//Debug.Log("Fixing transform: " + t.name);
+			VerboseLog("Fixing transform: " + t.name);
 			t.position = storedPos;
 			t.rotation = storedRot;
 
@@ -339,7 +323,15 @@ namespace ModelProcessor.Editor
 					}
 				}
 				m.bindposes = bindposes;
-				//Debug.Log("Bindposes fixed for " + m.name);
+				VerboseLog("Bindposes fixed for " + m.name);
+			}
+		}
+
+		private static void VerboseLog(string message)
+		{
+			if(ModelPostProcessor.VerboseLogging)
+			{
+				Debug.Log("[Blender Converter] " + message);
 			}
 		}
 	}

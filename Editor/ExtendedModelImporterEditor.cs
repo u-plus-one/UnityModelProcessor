@@ -62,14 +62,7 @@ namespace ModelProcessor.Editor
 
 			foreach(var tab in tabs)
 			{
-				try
-				{
-					tab.GetType().GetMethod("OnEnable", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic).Invoke(tab, Array.Empty<object>());
-				}
-				catch(Exception e)
-				{
-					Debug.LogException(e);
-				}
+				InvokeMethod(tab, "OnEnable");
 			}
 			activeTabIndex = EditorPrefs.GetInt(GetType().Name + "ActiveEditorIndex");
 
@@ -91,7 +84,7 @@ namespace ModelProcessor.Editor
 		{
 			foreach(var tab in tabs)
 			{
-				tab.GetType().GetMethod("OnDisable", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic).Invoke(tab, new object[0]);
+				InvokeMethod(tab, "OnDisable");
 			}
 			base.OnDisable();
 		}
@@ -120,15 +113,38 @@ namespace ModelProcessor.Editor
 			serializedObject.ApplyModifiedProperties();
 			extraDataSerializedObject.ApplyModifiedProperties();
 
+			//Debugging section (only visible when the package is embedded)
+			if(ModelPostProcessor.IsEmbeddedPackage)
+			{
+				PackageDebugGUI();
+			}
+
 			//Apply and revert buttons
 			ApplyRevertGUI();
+		}
 
-			/*
+		private void PackageDebugGUI()
+		{
+			GUILayout.BeginVertical(EditorStyles.helpBox);
+			GUILayout.Label("Package Debug", EditorStyles.boldLabel);
+			//Verbose logging toggle
+			EditorGUI.BeginChangeCheck();
+			var verbose = EditorGUILayout.Toggle("Verbose Logging", ModelPostProcessor.VerboseLogging);
+			if(EditorGUI.EndChangeCheck())
+			{
+				ModelPostProcessor.VerboseLogging = verbose;
+			}
+			//Force apply button to reimport the model at any time
 			if(GUILayout.Button("Force apply"))
 			{
+#if UNITY_2022_2_OR_NEWER
+				SaveChanges();
+#else
 				ApplyAndImport();
+#endif
+				GUIUtility.ExitGUI();
 			}
-			*/
+			GUILayout.EndVertical();
 		}
 
 		private void DrawCustomSettings()
@@ -186,7 +202,7 @@ namespace ModelProcessor.Editor
 						if(check.changed)
 						{
 							EditorPrefs.SetInt(GetType().Name + "ActiveEditorIndex", activeTabIndex);
-							tabs[activeTabIndex].GetType().GetMethod("OnInspectorGUI").Invoke(tabs[activeTabIndex], Array.Empty<object>());
+							InvokeMethod(tabs[activeTabIndex], "OnInspectorGUI");
 						}
 					}
 					GUILayout.FlexibleSpace();
@@ -197,7 +213,7 @@ namespace ModelProcessor.Editor
 		private void DrawActiveBuiltinTab()
 		{
 			var activeTab = tabs[activeTabIndex];
-			activeTab.GetType().GetMethod("OnInspectorGUI").Invoke(activeTab, Array.Empty<object>());
+			InvokeMethod(activeTab, "OnInspectorGUI");
 		}
 
 		protected override void Apply()
@@ -205,15 +221,12 @@ namespace ModelProcessor.Editor
 			// tabs can do work before or after the application of changes in the serialization object
 			foreach(var tab in tabs)
 			{
-				var m = tab.GetType().GetMethod("PreApply", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
-				if(m != null)
-				{
-					m.Invoke(tab, Array.Empty<object>());
-				}
+				InvokeMethod(tab, "PreApply");
 			}
 
 			for(int i = 0; i < targets.Length; i++)
 			{
+				//Serialize custom settings to user data
 				var extraData = (ModelProcessorSettings)extraDataTargets[i];
 				var userData = extraData.ToJson();
 				var path = AssetDatabase.GetAssetPath(targets[i]);
@@ -223,11 +236,27 @@ namespace ModelProcessor.Editor
 
 			foreach(var tab in tabs)
 			{
-				var m = tab.GetType().GetMethod("PostApply", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
-				if(m != null)
+				InvokeMethod(tab, "PostApply");
+			}
+		}
+
+		private static void InvokeMethod(object obj, string methodName, params object[] parameters)
+		{
+			try
+			{
+				var method = obj.GetType().GetMethod(methodName, BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+				if(method != null)
 				{
-					m.Invoke(tab, Array.Empty<object>());
+					method.Invoke(obj, parameters);
 				}
+				else
+				{
+					Debug.LogError($"Could not find method to invoke: {methodName} on object {obj.GetType().Name}");
+				}
+			}
+			catch(Exception e)
+			{
+				Debug.LogException(e);
 			}
 		}
 	}
