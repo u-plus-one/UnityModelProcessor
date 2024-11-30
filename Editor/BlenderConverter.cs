@@ -69,6 +69,7 @@ namespace ModelProcessor.Editor
 				{
 					var snapshot = transformSnapshots[transform];
 					if(transform.TryGetComponent<Light>(out _)) continue; //skip light transforms
+					if (transform.TryGetComponent<Camera>(out _)) continue; // skip camera transforms
 					var transformationMatrix = ApplyTransformFix(transform, snapshot.position, snapshot.rotation, flipZ);
 					deltas.Add(transform, transformationMatrix);
 				}
