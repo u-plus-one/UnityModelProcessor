@@ -1,5 +1,7 @@
+using System;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.Rendering;
 
 namespace ModelProcessor.Editor
 {
@@ -18,12 +20,12 @@ namespace ModelProcessor.Editor
 			Split(conditionLine, 220, out var conditionTypePos, out var conditionParamPos);
 			SplitRight(conditionParamPos, 50, out conditionParamPos, out var conditionInvertPos);
 			EditorGUI.PropertyField(conditionTypePos, property.FindPropertyRelative(nameof(Rule.condition)));
-			EditorGUI.PropertyField(conditionParamPos, property.FindPropertyRelative(nameof(Rule.conditionString)), GUIContent.none);
+			DrawConditionParameter(conditionParamPos, property);
 			var invert = property.FindPropertyRelative(nameof(Rule.invertCondition));
 			invert.boolValue = GUI.Toggle(conditionInvertPos, invert.boolValue, new GUIContent("Invert"), EditorStyles.miniButton);
 			Split(actionLine, 220, out var actionTypePos, out var actionParamPos);
 			EditorGUI.PropertyField(actionTypePos, property.FindPropertyRelative(nameof(Rule.action)));
-			EditorGUI.PropertyField(actionParamPos, property.FindPropertyRelative(nameof(Rule.actionString)), GUIContent.none);
+			DrawActionParameter(actionParamPos, property);
 			EditorGUIUtility.labelWidth = 120;
 			EditorGUI.PropertyField(actionLine2, property.FindPropertyRelative(nameof(Rule.applyToChildren)));
 		}
@@ -32,6 +34,63 @@ namespace ModelProcessor.Editor
 		{
 			int lines = 3;
 			return lines * EditorGUIUtility.singleLineHeight + (lines - 1) * EditorGUIUtility.standardVerticalSpacing;
+		}
+
+		private void DrawConditionParameter(Rect position, SerializedProperty prop)
+		{
+			var conditionType = (Rule.ConditionType)prop.FindPropertyRelative(nameof(Rule.condition)).intValue;
+			switch(conditionType)
+			{
+				case Rule.ConditionType.NameStartsWith:
+				case Rule.ConditionType.NameEndsWith:
+				case Rule.ConditionType.NameContains:
+				case Rule.ConditionType.NameMatchesRegex:
+				case Rule.ConditionType.PathStartsWith:
+				case Rule.ConditionType.PathEndsWith:
+				case Rule.ConditionType.PathContains:
+				case Rule.ConditionType.PathMatchesRegex:
+					EditorGUI.PropertyField(position, prop.FindPropertyRelative(nameof(Rule.conditionString)), GUIContent.none);
+					break;
+				case Rule.ConditionType.ChildDepthEquals:
+				case Rule.ConditionType.ChildDepthGreaterThan:
+				case Rule.ConditionType.ChildDepthGreaterOrEqual:
+				case Rule.ConditionType.ChildDepthLessThan:
+				case Rule.ConditionType.ChildDepthLessOrEqual:
+					EditorGUI.PropertyField(position, prop.FindPropertyRelative(nameof(Rule.conditionInt)), GUIContent.none);
+					break;
+			}
+		}
+
+		private void DrawActionParameter(Rect position, SerializedProperty prop)
+		{
+			var actionType = (Rule.ActionType)prop.FindPropertyRelative(nameof(Rule.action)).intValue;
+			switch(actionType)
+			{
+				case Rule.ActionType.SetLayer:
+					var l = prop.FindPropertyRelative(nameof(Rule.actionValueParam));
+					l.intValue = EditorGUI.LayerField(position, l.intValue);
+					break;
+				case Rule.ActionType.SetTag:
+					EditorGUI.PropertyField(position, prop.FindPropertyRelative(nameof(Rule.actionStringParam)), GUIContent.none);
+					break;
+				case Rule.ActionType.SetName:
+				case Rule.ActionType.PrependName:
+				case Rule.ActionType.AppendName:
+					EditorGUI.PropertyField(position, prop.FindPropertyRelative(nameof(Rule.actionStringParam)), GUIContent.none);
+					break;
+				case Rule.ActionType.SetCastShadowsMode:
+					var m = prop.FindPropertyRelative(nameof(Rule.actionValueParam));
+					m.intValue = (int)(object)EditorGUI.EnumPopup(position, (ShadowCastingMode)m.intValue);
+					break;
+				case Rule.ActionType.SetReceiveShadowsMode:
+					var b = prop.FindPropertyRelative(nameof(Rule.actionValueParam));
+					b.boolValue = EditorGUI.Toggle(position, b.boolValue);
+					break;
+				case Rule.ActionType.SetLightmapScale:
+					var s = prop.FindPropertyRelative(nameof(Rule.actionValueParam));
+					s.floatValue = EditorGUI.FloatField(position, s.floatValue);
+					break;
+			}
 		}
 
 		private void Split(Rect input, float width, out Rect l, out Rect r)

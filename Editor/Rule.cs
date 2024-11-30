@@ -87,11 +87,13 @@ namespace ModelProcessor.Editor
 		}
 
 		public ConditionType condition = ConditionType.Always;
-		public string conditionString = "";
 		public bool invertCondition;
+		public string conditionString = "";
+		public int conditionInt;
 
 		public ActionType action = ActionType.None;
-		public string actionString = "";
+		public string actionStringParam = "";
+		public float actionValueParam;
 		public bool applyToChildren = false;
 
 		public void ApplyToModel(GameObject modelRoot)
@@ -211,10 +213,10 @@ namespace ModelProcessor.Editor
 					GameObjectUtility.SetStaticEditorFlags(part.gameObject, (StaticEditorFlags)~0);
 					break;
 				case ActionType.SetLayer:
-					part.gameObject.layer = LayerMask.NameToLayer(actionString);
+					part.gameObject.layer = LayerMask.NameToLayer(actionStringParam);
 					break;
 				case ActionType.SetTag:
-					part.gameObject.tag = actionString;
+					part.gameObject.tag = actionStringParam;
 					break;
 				case ActionType.DestroyChildObjects:
 					foreach(Transform child in part.gameObject.transform)
@@ -223,13 +225,13 @@ namespace ModelProcessor.Editor
 					}
 					break;
 				case ActionType.SetName:
-					part.gameObject.name = actionString;
+					part.gameObject.name = actionStringParam;
 					break;
 				case ActionType.PrependName:
-					part.gameObject.name = actionString + part.gameObject.name;
+					part.gameObject.name = actionStringParam + part.gameObject.name;
 					break;
 				case ActionType.AppendName:
-					part.gameObject.name += actionString;
+					part.gameObject.name += actionStringParam;
 					break;
 				case ActionType.RemoveRenderer:
 					if(part.gameObject.TryGetComponent<MeshFilter>(out var filter))
@@ -251,21 +253,21 @@ namespace ModelProcessor.Editor
 				case ActionType.SetCastShadowsMode:
 					if(part.gameObject.TryGetComponent(out renderer))
 					{
-						var mode = (UnityEngine.Rendering.ShadowCastingMode)System.Enum.Parse(typeof(UnityEngine.Rendering.ShadowCastingMode), actionString);
+						var mode = (UnityEngine.Rendering.ShadowCastingMode)System.Enum.Parse(typeof(UnityEngine.Rendering.ShadowCastingMode), actionStringParam);
 						renderer.shadowCastingMode = mode;
 					}
 					break;
 				case ActionType.SetReceiveShadowsMode:
 					if(part.gameObject.TryGetComponent(out renderer))
 					{
-						renderer.receiveShadows = bool.Parse(actionString);
+						renderer.receiveShadows = bool.Parse(actionStringParam);
 					}
 					break;
 				case ActionType.SetLightmapScale:
 					if(part.gameObject.TryGetComponent(out renderer))
 					{
 						SerializedObject so = new SerializedObject(renderer);
-						so.FindProperty("m_ScaleInLightmap").floatValue = float.Parse(actionString);
+						so.FindProperty("m_ScaleInLightmap").floatValue = float.Parse(actionStringParam);
 						so.ApplyModifiedProperties();
 					}
 					break;
