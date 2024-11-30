@@ -34,8 +34,12 @@ namespace ModelProcessor.Editor
 		{
 			[InspectorName("Always")]
 			Always = 0,
-			[InspectorName("Root Object")]
+			[InspectorName("GameObject/Is Root")]
 			RootObject = 1,
+			[InspectorName("GameObject/Inactive (Self)")]
+			GameObjectInactiveSelf = 2,
+			[InspectorName("GameObject/Inactive (In Hierarchy)")]
+			GameObjectInactiveInHierarchy = 3,
 			//name conditions
 			[InspectorName("Name/Starts With")]
 			NameStartsWith = 11,
@@ -77,9 +81,9 @@ namespace ModelProcessor.Editor
 			HasLight = 36,
 			[InspectorName("Has Component/Camera")]
 			HasCamera = 37,
-			[InspectorName("Is Empty")]
+			[InspectorName("GameObject/Is Empty")]
 			IsEmpty = 38,
-			[InspectorName("Is Empty (No Children)")]
+			[InspectorName("GameObject/Is Empty (No Children)")]
 			IsEmptyWithoutChildren = 39,
 		}
 
@@ -194,6 +198,10 @@ namespace ModelProcessor.Editor
 					return true;
 				case ConditionType.RootObject:
 					return obj.childDepth == 0;
+				case ConditionType.GameObjectInactiveSelf:
+					return !obj.gameObject.activeSelf;
+				case ConditionType.GameObjectInactiveInHierarchy:
+					return !obj.gameObject.activeInHierarchy;
 				case ConditionType.NameStartsWith:
 					return obj.gameObject.name.StartsWith(conditionParam);
 				case ConditionType.NameEndsWith:
