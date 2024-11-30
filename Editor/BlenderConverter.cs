@@ -68,16 +68,7 @@ namespace ModelProcessor.Editor
 				else
 				{
 					var snapshot = transformSnapshots[transform];
-					if (transform.TryGetComponent<Light>(out _))
-					{
-						FixCameraTransforms(transform, flipZ);
-						continue;
-					}
-					if (transform.TryGetComponent<Camera>(out _))
-					{
-						FixCameraTransforms(transform, flipZ);
-						continue;
-					}
+
 					var transformationMatrix = ApplyTransformFix(transform, snapshot.position, snapshot.rotation, flipZ);
 					deltas.Add(transform, transformationMatrix);
 				}
@@ -96,15 +87,6 @@ namespace ModelProcessor.Editor
 				ApplyBindPoseFix(skinnedMeshRenderer, deltas, fixedSkinnedMeshes);
 			}
 		}
-
-		public static void FixCameraTransforms(Transform t, bool flipZ)
-		{
-            if (flipZ)
-            {
-                t.position = Vector3.Scale(t.position, Z_FLIP_SCALE);
-				t.Rotate(new(0f, 180f, 0f), Space.World);
-            }
-        }
 
 		public static void FixAnimationClipOrientation(AnimationClip clip, bool flipZ)
 		{
@@ -332,6 +314,16 @@ namespace ModelProcessor.Editor
 			t.localScale = new Vector3(t.localScale.x, t.localScale.z, t.localScale.y);
 
 			Matrix4x4 after = t.localToWorldMatrix;
+
+			if (t.TryGetComponent<Camera>(out _) || t.TryGetComponent<Light>(out _))
+			{
+				t.Rotate(new Vector3(-90f, 0f, 0f), Space.Self);
+
+				if (flipZ)
+				{
+					t.Rotate(new Vector3(0f, 0f, 180f), Space.Self);
+				}
+			}
 
 			return after * before.inverse;
 		}
