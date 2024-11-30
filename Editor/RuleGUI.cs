@@ -1,7 +1,6 @@
 using System.Globalization;
 using UnityEditor;
 using UnityEngine;
-using UnityEngine.EventSystems;
 using UnityEngine.Rendering;
 
 namespace ModelProcessor.Editor

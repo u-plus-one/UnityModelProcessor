@@ -43,7 +43,7 @@ namespace ModelProcessor.Editor
 			PathEndsWith = 16,
 			PathContains = 17,
 			PathMatchesRegex = 18,
-			//component conditions
+			//parent-child conditions
 			[InspectorName("Child Depth ==")]
 			ChildDepthEquals = 21,
 			[InspectorName("Child Depth >")]
@@ -54,6 +54,8 @@ namespace ModelProcessor.Editor
 			ChildDepthLessThan = 24,
 			[InspectorName("Child Depth <=")]
 			ChildDepthLessOrEqual = 25,
+			HasChildren = 26,
+			//component conditions
 			HasMesh = 31,
 			HasSkinnedMesh = 32,
 			HasCollider = 35,
@@ -179,6 +181,8 @@ namespace ModelProcessor.Editor
 					return obj.childDepth < int.Parse(conditionParam);
 				case ConditionType.ChildDepthLessOrEqual:
 					return obj.childDepth <= int.Parse(conditionParam);
+				case ConditionType.HasChildren:
+					return obj.gameObject.transform.childCount > 0;
 				case ConditionType.HasMesh:
 					return obj.gameObject.TryGetComponent<Renderer>(out _);
 				case ConditionType.HasSkinnedMesh:
