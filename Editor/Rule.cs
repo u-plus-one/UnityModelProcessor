@@ -107,18 +107,24 @@ namespace ModelProcessor.Editor
 			PrependName = 013,
 			[InspectorName("Object Name/Append")]
 			AppendName = 014,
-			//component operations
+			//renderer operations
 			[InspectorName("Renderer/Remove")]
 			RemoveRenderer = 101,
-			[InspectorName("Collider/Remove")]
-			RemoveCollider = 102,
-			//rendering operations
 			[InspectorName("Renderer/Set Cast Shadows Mode")]
-			SetCastShadowsMode = 201,
+			SetCastShadowsMode = 102,
 			[InspectorName("Renderer/Set Receive Shadows Mode")]
-			SetReceiveShadowsMode = 202,
+			SetReceiveShadowsMode = 103,
 			[InspectorName("Renderer/Set Lightmap Scale")]
-			SetLightmapScale = 203,
+			SetLightmapScale = 104,
+			//collider operations
+			[InspectorName("Collider/Remove")]
+			RemoveCollider = 201,
+			[InspectorName("Collider/Set Convex")]
+			SetColliderConvex = 202,
+			[InspectorName("Collider/Box Collider")]
+			ToBoxCollider = 203,
+			[InspectorName("Collider/Sphere Collider")]
+			ToSphereCollider = 204,
 			//Debug stuff
 			[InspectorName("Debug/Add Helper Component")]
 			AddHelperComponent = 999
@@ -286,21 +292,6 @@ namespace ModelProcessor.Editor
 					if(part.gameObject.TryGetComponent(out Renderer renderer))
 						Object.DestroyImmediate(renderer);
 					break;
-				case ActionType.RemoveCollider:
-					if(part.gameObject.TryGetComponent<Collider>(out var collider))
-						Object.DestroyImmediate(collider);
-					break;
-				case ActionType.AddHelperComponent:
-					var type = System.Type.GetType("HelperComponent,Assembly-CSharp", false, true);
-					if(type != null)
-					{
-						part.gameObject.AddComponent(type);
-					}
-					else
-					{
-						Debug.LogError("AddHelperComponent requires a script named 'HelperComponent' in the project.");
-					}
-					break;
 				case ActionType.SetCastShadowsMode:
 					if(part.gameObject.TryGetComponent(out renderer))
 					{
@@ -320,6 +311,35 @@ namespace ModelProcessor.Editor
 						SerializedObject so = new SerializedObject(renderer);
 						so.FindProperty("m_ScaleInLightmap").floatValue = float.Parse(actionParam);
 						so.ApplyModifiedProperties();
+					}
+					break;
+				case ActionType.RemoveCollider:
+					if(part.gameObject.TryGetComponent<Collider>(out var collider))
+						Object.DestroyImmediate(collider);
+					break;
+				case ActionType.SetColliderConvex:
+					if(part.gameObject.TryGetComponent<MeshCollider>(out var mc))
+						mc.convex = bool.Parse(actionParam);
+					break;
+				case ActionType.ToBoxCollider:
+					if(part.gameObject.TryGetComponent(out Collider c))
+						Object.DestroyImmediate(c);
+					part.gameObject.AddComponent<BoxCollider>();
+					break;
+				case ActionType.ToSphereCollider:
+					if(part.gameObject.TryGetComponent(out Collider c2))
+						Object.DestroyImmediate(c2);
+					part.gameObject.AddComponent<SphereCollider>();
+					break;
+				case ActionType.AddHelperComponent:
+					var type = System.Type.GetType("HelperComponent,Assembly-CSharp", false, true);
+					if(type != null)
+					{
+						part.gameObject.AddComponent(type);
+					}
+					else
+					{
+						Debug.LogError("AddHelperComponent requires a script named 'HelperComponent' in the project.");
 					}
 					break;
 				default:
