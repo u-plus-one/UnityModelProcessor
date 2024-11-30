@@ -291,10 +291,14 @@ namespace ModelProcessor.Editor
 						Object.DestroyImmediate(collider);
 					break;
 				case ActionType.AddHelperComponent:
-					var type = System.Type.GetType("HelperComponent");
+					var type = System.Type.GetType("HelperComponent,Assembly-CSharp", false, true);
 					if(type != null)
 					{
 						part.gameObject.AddComponent(type);
+					}
+					else
+					{
+						Debug.LogError("AddHelperComponent requires a script named 'HelperComponent' in the project.");
 					}
 					break;
 				case ActionType.SetCastShadowsMode:
