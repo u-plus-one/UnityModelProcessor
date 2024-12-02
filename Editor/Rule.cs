@@ -270,7 +270,7 @@ namespace ModelProcessor.Editor
 					GameObjectUtility.SetStaticEditorFlags(part.gameObject, (StaticEditorFlags)int.Parse(actionParam));
 					break;
 				case ActionType.SetLayer:
-					part.gameObject.layer = LayerMask.NameToLayer(actionParam);
+					part.gameObject.layer = int.Parse(actionParam);
 					break;
 				case ActionType.SetTag:
 					part.gameObject.tag = !string.IsNullOrWhiteSpace(actionParam) ? actionParam : "Untagged";
