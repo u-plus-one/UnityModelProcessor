@@ -33,105 +33,124 @@ namespace ModelProcessor.Editor
 		public enum ConditionType : int
 		{
 			[InspectorName("Always")]
-			Always = 0,
+			Always = 0x00,
+			[InspectorName("Previous Condition")]
+			PreviousCondition = 0x01,
+			//game object conditions
 			[InspectorName("GameObject/Is Root")]
-			RootObject = 1,
+			RootObject = 0x10,
 			[InspectorName("GameObject/Inactive (Self)")]
-			GameObjectInactiveSelf = 2,
+			GameObjectInactiveSelf = 0x11,
 			[InspectorName("GameObject/Inactive (In Hierarchy)")]
-			GameObjectInactiveInHierarchy = 3,
+			GameObjectInactiveInHierarchy = 0x12,
 			//name conditions
 			[InspectorName("Name/Starts With")]
-			NameStartsWith = 11,
+			NameStartsWith = 0x20,
 			[InspectorName("Name/Ends With")]
-			NameEndsWith = 12,
+			NameEndsWith = 0x21,
 			[InspectorName("Name/Contains")]
-			NameContains = 13,
-			[InspectorName("Name/Matches Regex")]
-			NameMatchesRegex = 14,
+			NameContains = 0x22,
+			[InspectorName("Name/Equals")]
+			NameEquals = 0x23,
+			[InspectorName("Name/Regex Match")]
+			NameMatchesRegex = 0x24,
 			[InspectorName("Path/Starts With")]
-			PathStartsWith = 15,
+			PathStartsWith = 0x25,
 			[InspectorName("Path/Ends With")]
-			PathEndsWith = 16,
+			PathEndsWith = 0x26,
 			[InspectorName("Path/Contains")]
-			PathContains = 17,
-			[InspectorName("Path/Matches Regex")]
-			PathMatchesRegex = 18,
+			PathContains = 0x27,
+			[InspectorName("Path/Equals")]
+			PathEquals = 0x28,
+			[InspectorName("Path/Regex Match")]
+			PathMatchesRegex = 0x29,
 			//parent-child conditions
 			[InspectorName("Child Depth/==")]
-			ChildDepthEquals = 21,
+			ChildDepthEquals = 0x30,
 			[InspectorName("Child Depth/>")]
-			ChildDepthGreaterThan = 22,
+			ChildDepthGreaterThan = 0x31,
 			[InspectorName("Child Depth/>=")]
-			ChildDepthGreaterOrEqual = 23,
+			ChildDepthGreaterOrEqual = 0x32,
 			[InspectorName("Child Depth/<")]
-			ChildDepthLessThan = 24,
+			ChildDepthLessThan = 0x33,
 			[InspectorName("Child Depth/<=")]
-			ChildDepthLessOrEqual = 25,
+			ChildDepthLessOrEqual = 0x34,
 			[InspectorName("Has Children")]
-			HasChildren = 26,
+			HasChildren = 0x35,
 			//component conditions
 			[InspectorName("Has Component/Mesh")]
-			HasMesh = 31,
+			HasMesh = 0x40,
 			[InspectorName("Has Component/Skinned Mesh")]
-			HasSkinnedMesh = 32,
+			HasSkinnedMesh = 0x41,
 			[InspectorName("Has Component/Collider")]
-			HasCollider = 35,
+			HasCollider = 0x42,
 			[InspectorName("Has Component/Light")]
-			HasLight = 36,
+			HasLight = 0x43,
 			[InspectorName("Has Component/Camera")]
-			HasCamera = 37,
+			HasCamera = 0x44,
+			//empty conditions
 			[InspectorName("GameObject/Is Empty")]
-			IsEmpty = 38,
+			IsEmpty = 0x50,
 			[InspectorName("GameObject/Is Empty (No Children)")]
-			IsEmptyWithoutChildren = 39,
+			IsEmptyWithoutChildren = 0x51,
+			//custom
+			[InspectorName("Custom Function")]
+			CustomFunction = 0xFF
 		}
 
 		public enum ActionType : int
 		{
-			None = 0,
+			None = 0x00,
 			//game object operations
 			[InspectorName("GameObject/Set Inactive")]
-			SetGameObjectInactive = 001,
+			SetGameObjectInactive = 0x01,
 			[InspectorName("GameObject/Destroy")]
-			DestroyGameObject = 002,
+			DestroyGameObject = 0x02,
 			[InspectorName("GameObject/Destroy Children")]
-			DestroyChildObjects = 003,
+			DestroyChildObjects = 0x03,
 			[InspectorName("GameObject/Mark Static")]
-			MarkStatic = 004,
+			MarkStatic = 0x04,
 			[InspectorName("GameObject/Set Static Flags")]
-			SetStaticFlags = 005,
+			SetStaticFlags = 0x05,
 			[InspectorName("GameObject/Set Layer")]
-			SetLayer = 010,
+			SetLayer = 0x06,
 			[InspectorName("GameObject/Set Tag")]
-			SetTag = 011,
+			SetTag = 0x07,
+			//object name operations
 			[InspectorName("Object Name/Set")]
-			SetName = 012,
+			SetName = 0x10,
 			[InspectorName("Object Name/Prepend")]
-			PrependName = 013,
+			PrependName = 011,
 			[InspectorName("Object Name/Append")]
-			AppendName = 014,
+			AppendName = 012,
 			//renderer operations
 			[InspectorName("Renderer/Remove")]
-			RemoveRenderer = 101,
+			RemoveRenderer = 0x20,
 			[InspectorName("Renderer/Set Cast Shadows Mode")]
-			SetCastShadowsMode = 102,
+			SetCastShadowsMode = 0x21,
 			[InspectorName("Renderer/Set Receive Shadows Mode")]
-			SetReceiveShadowsMode = 103,
+			SetReceiveShadowsMode = 0x22,
 			[InspectorName("Renderer/Set Lightmap Scale")]
-			SetLightmapScale = 104,
+			SetLightmapScale = 0x23,
 			//collider operations
 			[InspectorName("Collider/Remove")]
-			RemoveCollider = 201,
+			RemoveCollider = 0x30,
 			[InspectorName("Collider/Set Convex")]
-			SetColliderConvex = 202,
+			SetColliderConvex = 0x31,
 			[InspectorName("Collider/Box Collider")]
-			ToBoxCollider = 203,
+			ToBoxCollider = 0x32,
 			[InspectorName("Collider/Sphere Collider")]
-			ToSphereCollider = 204,
+			ToSphereCollider = 0x33,
 			//Debug stuff
 			[InspectorName("Debug/Add Helper Component")]
-			AddHelperComponent = 999
+			AddHelperComponent = 0xE0,
+			[InspectorName("Debug/Log To Console")]
+			LogToConsole = 0xE1,
+			[InspectorName("Debug/Log To Console (Formatted)")]
+			LogToConsoleFormat = 0xE2,
+			//Custom function
+			[InspectorName("Custom Function")]
+			CustomFunction = 0xFF
 		}
 
 		public ConditionType condition = ConditionType.Always;
@@ -144,16 +163,16 @@ namespace ModelProcessor.Editor
 
 		public void ApplyToModel(GameObject modelRoot)
 		{
-			ApplyRecursively(new PartInfo(modelRoot));
+			ApplyRecursively(new PartInfo(modelRoot), true);
 		}
 
-		private void ApplyRecursively(PartInfo obj)
+		private void ApplyRecursively(PartInfo obj, bool previousConditionResult)
 		{
-			bool applied = ApplyOnObject(obj);
+			bool result = ApplyOnObject(obj, previousConditionResult);
 			//Check if the object itself wasn't destroyed
 			if(obj.gameObject != null)
 			{
-				if(!(applied && applyToChildren))
+				if(!(result && applyToChildren))
 				{
 					var children = new List<Transform>();
 					for(int i = 0; i < obj.gameObject.transform.childCount; i++)
@@ -162,15 +181,15 @@ namespace ModelProcessor.Editor
 					}
 					foreach(var child in children)
 					{
-						ApplyRecursively(new PartInfo(child.gameObject));
+						ApplyRecursively(new PartInfo(child.gameObject), result);
 					}
 				}
 			}
 		}
 
-		public bool ApplyOnObject(PartInfo obj)
+		public bool ApplyOnObject(PartInfo obj, bool previousConditionResult)
 		{
-			bool condition = CheckCondition(obj);
+			bool condition = CheckCondition(obj, previousConditionResult);
 			if(invertCondition) condition = !condition;
 			if(condition)
 			{
@@ -190,12 +209,14 @@ namespace ModelProcessor.Editor
 			return false;
 		}
 
-		private bool CheckCondition(PartInfo obj)
+		private bool CheckCondition(PartInfo obj, bool previousConditionResult)
 		{
 			switch(condition)
 			{
 				case ConditionType.Always:
 					return true;
+				case ConditionType.PreviousCondition:
+					return previousConditionResult;
 				case ConditionType.RootObject:
 					return obj.childDepth == 0;
 				case ConditionType.GameObjectInactiveSelf:
@@ -208,6 +229,8 @@ namespace ModelProcessor.Editor
 					return obj.gameObject.name.EndsWith(conditionParam);
 				case ConditionType.NameContains:
 					return obj.gameObject.name.Contains(conditionParam);
+				case ConditionType.NameEquals:
+					return obj.gameObject.name == conditionParam;
 				case ConditionType.NameMatchesRegex:
 					return System.Text.RegularExpressions.Regex.IsMatch(obj.gameObject.name, conditionParam);
 				case ConditionType.PathStartsWith:
@@ -216,6 +239,8 @@ namespace ModelProcessor.Editor
 					return obj.hierarchyPath.EndsWith(conditionParam);
 				case ConditionType.PathContains:
 					return obj.hierarchyPath.Contains(conditionParam);
+				case ConditionType.PathEquals:
+					return obj.hierarchyPath == conditionParam;
 				case ConditionType.PathMatchesRegex:
 					return System.Text.RegularExpressions.Regex.IsMatch(obj.hierarchyPath, conditionParam);
 				case ConditionType.ChildDepthEquals:
@@ -244,6 +269,9 @@ namespace ModelProcessor.Editor
 					return obj.childDepth > 0 && obj.gameObject.GetComponents<Component>().Length == 1;
 				case ConditionType.IsEmptyWithoutChildren:
 					return obj.childDepth > 0 && obj.gameObject.GetComponents<Component>().Length == 1 && obj.gameObject.transform.childCount == 0;
+				case ConditionType.CustomFunction:
+					//TODO: Implement custom function
+					return false;
 				default:
 					Debug.LogError($"Model processor condition of type '{condition}' is not implemented.");
 					return false;
@@ -349,6 +377,15 @@ namespace ModelProcessor.Editor
 					{
 						Debug.LogError("AddHelperComponent requires a script named 'HelperComponent' in the project.");
 					}
+					break;
+				case ActionType.LogToConsole:
+					Debug.Log(actionParam+": "+part.hierarchyPath);
+					break;
+				case ActionType.LogToConsoleFormat:
+					Debug.Log(string.Format(actionParam, part.hierarchyPath));
+					break;
+				case ActionType.CustomFunction:
+					//TODO: Implement custom function
 					break;
 				default:
 					Debug.LogError($"Model processor action of type '{action}' is not implemented.");
