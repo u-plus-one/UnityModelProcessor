@@ -2,6 +2,7 @@
 using System.Linq;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.XR;
 
 namespace ModelProcessor.Editor
 {
@@ -35,6 +36,29 @@ namespace ModelProcessor.Editor
 			}
 		}
 
+		private class MeshInfo
+		{
+			public readonly Mesh mesh;
+			public readonly List<Transform> users;
+
+			public int UserCount => users.Count;
+
+			public Transform FirstUser => users[0];
+
+			public bool IsSkinned => FirstUser.TryGetComponent<SkinnedMeshRenderer>(out _);
+
+			public MeshInfo(Mesh mesh, Transform user)
+			{
+				this.mesh = mesh;
+				users = new List<Transform> { user };
+			}
+
+			public void AddUser(Transform user)
+			{
+				users.Add(user);
+			}
+		}
+
 		const float SQRT2_HALF = 0.70710678f;
 		private static readonly Vector3 Z_FLIP_SCALE = new Vector3(-1, 1, -1);
 		//(-90°, 0°, 0°)
@@ -47,7 +71,7 @@ namespace ModelProcessor.Editor
 		public static void FixTransforms(GameObject root, bool matchAxes, ModelImporter modelImporter)
 		{
 			VerboseLog("Applying fix on "+root.name);
-			var meshes = GetUniqueMeshes(root.transform);
+			var meshes = GatherMeshes(root.transform);
 
 			var transformSnapshots = new Dictionary<Transform, TransformSnapshot>();
 			foreach(var t in root.GetComponentsInChildren<Transform>(true))
@@ -56,7 +80,7 @@ namespace ModelProcessor.Editor
 				transformSnapshots.Add(t, new TransformSnapshot(t));
 			}
 
-			var deltas = new Dictionary<Transform, Matrix4x4>();
+			var transformationDeltas = new Dictionary<Transform, Matrix4x4>();
 			var transforms = transformSnapshots.Keys.ToArray();
 			for(int i = 0; i < transforms.Length; i++)
 			{
@@ -66,7 +90,7 @@ namespace ModelProcessor.Editor
 				var snapshot = transformSnapshots[transform];
 				if(transform.TryGetComponent<Light>(out _) || transform.TryGetComponent<Camera>(out _)) continue; //skip light transforms
 				var transformationMatrix = ApplyTransformFix(transform, snapshot.position, snapshot.rotation, matchAxes);
-				deltas.Add(transform, transformationMatrix);
+				transformationDeltas.Add(transform, transformationMatrix);
 			}
 
 			Quaternion rotation = matchAxes ? ROTATION_FIX_Z_FLIP : ROTATION_FIX;
@@ -79,7 +103,7 @@ namespace ModelProcessor.Editor
 			List<Mesh> fixedSkinnedMeshes = new List<Mesh>();
 			foreach(var skinnedMeshRenderer in root.GetComponentsInChildren<SkinnedMeshRenderer>(true))
 			{
-				ApplyBindPoseFix(skinnedMeshRenderer, deltas, fixedSkinnedMeshes);
+				ApplyBindPoseFix(skinnedMeshRenderer, transformationDeltas, fixedSkinnedMeshes);
 			}
 		}
 
@@ -214,46 +238,66 @@ namespace ModelProcessor.Editor
 			return modified;
 		}
 
-		private static List<Mesh> GetUniqueMeshes(Transform transform)
+		private static List<MeshInfo> GatherMeshes(Transform root)
 		{
-			var list = new List<Mesh>();
-			foreach(var filter in transform.GetComponentsInChildren<MeshFilter>(true))
+			var list = new List<MeshInfo>();
+			foreach(var filter in root.GetComponentsInChildren<MeshFilter>(true))
 			{
-				if(filter.sharedMesh && !list.Contains(filter.sharedMesh))
+				var mesh = filter.sharedMesh;
+				var transform = filter.transform;
+				if(!mesh) continue;
+				if(list.Any(mi => mi.mesh == mesh))
 				{
-					list.Add(filter.sharedMesh);
+					list.First(mi => mi.mesh == mesh).AddUser(transform);
+				}
+				else
+				{
+					list.Add(new MeshInfo(mesh, transform));
 				}
 			}
-			foreach(var skinnedRenderer in transform.GetComponentsInChildren<SkinnedMeshRenderer>(true))
+			foreach(var skinnedRenderer in root.GetComponentsInChildren<SkinnedMeshRenderer>(true))
 			{
-				if(skinnedRenderer.sharedMesh && !list.Contains(skinnedRenderer.sharedMesh))
+				var mesh = skinnedRenderer.sharedMesh;
+				var transform = skinnedRenderer.transform;
+				if(!mesh) continue;
+				if(list.Any(mi => mi.mesh == mesh))
 				{
-					list.Add(skinnedRenderer.sharedMesh);
+					list.First(mi => mi.mesh == mesh).AddUser(transform);
+				}
+				else
+				{
+					list.Add(new MeshInfo(mesh, transform));
 				}
 			}
 			return list;
 		}
 
-		private static void ApplyMeshFix(Mesh m, Matrix4x4 matrix, bool calculateTangents)
+		private static void ApplyMeshFix(MeshInfo mi, Matrix4x4 matrix, bool calculateTangents)
 		{
-			VerboseLog("Fixing mesh: " + m.name);
-			var verts = m.vertices;
+			VerboseLog("Fixing mesh: " + mi.mesh.name);
+			var mesh = mi.mesh;
+			var verts = mesh.vertices;
+
+			//Transform vertices
 			for(int i = 0; i < verts.Length; i++)
 			{
 				verts[i] = matrix.MultiplyPoint(verts[i]);
 			}
-			m.vertices = verts;
+			mesh.vertices = verts;
 
-			if(m.normals != null)
+			//Transform normals
+			if(mesh.normals != null)
 			{
-				var normals = m.normals;
+				var normals = mesh.normals;
 				for(int i = 0; i < verts.Length; i++)
 				{
 					normals[i] = matrix.MultiplyPoint(normals[i]);
 				}
-				m.normals = normals;
+				mesh.normals = normals;
 			}
 
+			//Transform tangents
+			//TODO: find out if / how to do it
 			/*
 			for(int i = 0; i < tangents.Length; i++)
 			{
@@ -264,9 +308,9 @@ namespace ModelProcessor.Editor
 
 			if(calculateTangents)
 			{
-				m.RecalculateTangents();
+				mesh.RecalculateTangents();
 			}
-			m.RecalculateBounds();
+			mesh.RecalculateBounds();
 		}
 
 		private static Matrix4x4 ApplyTransformFix(Transform t, Vector3 storedPos, Quaternion storedRot, bool flipZ)
@@ -295,6 +339,7 @@ namespace ModelProcessor.Editor
 				t.Rotate(new Vector3(-90 * sign, 0, 0), Space.Self);
 			}
 
+			//Flip z and y in scale
 			t.localScale = new Vector3(t.localScale.x, t.localScale.z, t.localScale.y);
 
 			Matrix4x4 after = t.localToWorldMatrix;
