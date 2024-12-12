@@ -2,7 +2,6 @@
 using System.Linq;
 using UnityEditor;
 using UnityEngine;
-using UnityEngine.XR;
 
 namespace ModelProcessor.Editor
 {
@@ -68,28 +67,25 @@ namespace ModelProcessor.Editor
 		//(90°, 0°, 0°)
 		private static readonly Quaternion ANIM_ROTATION_FIX = new Quaternion(SQRT2_HALF, 0, 0, SQRT2_HALF);
 
+		//(-90°, 0°, 0°)
+		private static readonly Matrix4x4 ROTATION_FIX_MATRIX = Matrix4x4.Rotate(ROTATION_FIX);
+		//(-90°, 180°, 0°)
+		private static readonly Matrix4x4 ROTATION_FIX_MATRIX_Z_FLIP = Matrix4x4.Rotate(ROTATION_FIX_Z_FLIP);
+
 		public static void FixTransforms(GameObject root, bool matchAxes, ModelImporter modelImporter)
 		{
-			VerboseLog("Applying fix on "+root.name);
+			VerboseLog("Applying fix on " + root.name);
 			var meshes = GatherMeshes(root.transform);
 
-			var transformSnapshots = new Dictionary<Transform, TransformSnapshot>();
-			foreach(var t in root.GetComponentsInChildren<Transform>(true))
-			{
-				if(t == root.transform) continue;
-				transformSnapshots.Add(t, new TransformSnapshot(t));
-			}
-
 			var transformationDeltas = new Dictionary<Transform, Matrix4x4>();
-			var transforms = transformSnapshots.Keys.ToArray();
+			var transforms = root.GetComponentsInChildren<Transform>(true);
 			for(int i = 0; i < transforms.Length; i++)
 			{
 				var transform = transforms[i];
 				if(transform == root.transform) continue;
 
-				var snapshot = transformSnapshots[transform];
 				if(transform.TryGetComponent<Light>(out _) || transform.TryGetComponent<Camera>(out _)) continue; //skip light transforms
-				var transformationMatrix = ApplyTransformFix(transform, snapshot.position, snapshot.rotation, matchAxes);
+				var transformationMatrix = ApplyTransformFix(transform, matchAxes);
 				transformationDeltas.Add(transform, transformationMatrix);
 			}
 
@@ -272,7 +268,7 @@ namespace ModelProcessor.Editor
 			return list;
 		}
 
-		private static void ApplyMeshFix(MeshInfo mi, Matrix4x4 matrix, bool calculateTangents)
+		private static void ApplyMeshFix(MeshInfo mi, Matrix4x4 transformation, bool calculateTangents)
 		{
 			VerboseLog("Fixing mesh: " + mi.mesh.name);
 			var mesh = mi.mesh;
@@ -281,7 +277,7 @@ namespace ModelProcessor.Editor
 			//Transform vertices
 			for(int i = 0; i < verts.Length; i++)
 			{
-				verts[i] = matrix.MultiplyPoint(verts[i]);
+				verts[i] = transformation.MultiplyPoint(verts[i]);
 			}
 			mesh.vertices = verts;
 
@@ -291,7 +287,7 @@ namespace ModelProcessor.Editor
 				var normals = mesh.normals;
 				for(int i = 0; i < verts.Length; i++)
 				{
-					normals[i] = matrix.MultiplyPoint(normals[i]);
+					normals[i] = transformation.MultiplyPoint(normals[i]);
 				}
 				mesh.normals = normals;
 			}
@@ -313,30 +309,42 @@ namespace ModelProcessor.Editor
 			mesh.RecalculateBounds();
 		}
 
-		private static Matrix4x4 ApplyTransformFix(Transform t, Vector3 storedPos, Quaternion storedRot, bool flipZ)
+		private static Matrix4x4 ApplyTransformFix(Transform t, bool flipZ)
 		{
 			Matrix4x4 before = t.localToWorldMatrix;
 
-			VerboseLog("Fixing transform: " + t.name);
-			t.position = storedPos;
-			t.rotation = storedRot;
+			int depth = GetDepth(t);
+			VerboseLog($"Fixing transform: {t.name} (depth {depth})");
+
+			//Fix position
+			if(depth > 1)
+			{
+				t.localPosition = ROTATION_FIX_MATRIX.MultiplyPoint(t.localPosition);
+			}
+			//TODO: find out how to undo rotations without remembering the original rotation
+			Dictionary<Transform, Quaternion> originalRotations = new Dictionary<Transform, Quaternion>();
+			foreach(Transform c in t)
+			{
+				originalRotations.Add(c, c.rotation);
+			}
+
+			//Fix rotation by applying the inverse of the rotation that was applied to the mesh
+			t.localRotation *= Quaternion.Inverse(ROTATION_FIX);
+
+			foreach(Transform c in t)
+			{
+				//Undo rotations on children
+				c.rotation = originalRotations[c];
+			}
 
 			if(flipZ)
 			{
-				t.position = Vector3.Scale(t.position, Z_FLIP_SCALE);
-				t.eulerAngles = Vector3.Scale(t.eulerAngles, Z_FLIP_SCALE);
-			}
-
-			float sign = flipZ ? 1 : -1;
-
-			if((t.localEulerAngles - new Vector3(89.98f * sign, 0, 0)).magnitude < 0.001f)
-			{
-				//Reset local rotation
-				t.localRotation = Quaternion.identity;
-			}
-			else
-			{
-				t.Rotate(new Vector3(-90 * sign, 0, 0), Space.Self);
+				//Mirror local positions and rotations
+				t.localPosition = Vector3.Scale(t.localPosition, Z_FLIP_SCALE);
+				var q1 = t.localRotation;
+				q1.x *= -1;
+				q1.z *= -1;
+				t.localRotation = q1;
 			}
 
 			//Flip z and y in scale
@@ -378,6 +386,17 @@ namespace ModelProcessor.Editor
 			{
 				Debug.Log("[Blender Converter] " + message);
 			}
+		}
+
+		private static int GetDepth(Transform t)
+		{
+			int d = 0;
+			while(t.parent != null)
+			{
+				t = t.parent;
+				d++;
+			}
+			return d;
 		}
 	}
 }
