@@ -63,8 +63,12 @@ namespace ModelProcessor.Editor
 				var transform = transforms[i];
 				if(transform == root.transform) continue;
 
+				if(transform == null || transform == root.transform) continue;
+				//Delete objects that are hidden and have no children
+				//TODO: turn this into a setting (or rule)
+
 				var snapshot = transformSnapshots[transform];
-				if(transform.TryGetComponent<Light>(out _) || transform.TryGetComponent<Camera>(out _)) continue; //skip light transforms
+
 				var transformationMatrix = ApplyTransformFix(transform, snapshot.position, snapshot.rotation, matchAxes);
 				deltas.Add(transform, transformationMatrix);
 			}
@@ -298,6 +302,16 @@ namespace ModelProcessor.Editor
 			t.localScale = new Vector3(t.localScale.x, t.localScale.z, t.localScale.y);
 
 			Matrix4x4 after = t.localToWorldMatrix;
+
+			if (t.TryGetComponent<Camera>(out _) || t.TryGetComponent<Light>(out _))
+			{
+				t.Rotate(new Vector3(-90f, 0f, 0f), Space.Self);
+
+				if (flipZ)
+				{
+					t.Rotate(new Vector3(0f, 0f, 180f), Space.Self);
+				}
+			}
 
 			return after * before.inverse;
 		}
