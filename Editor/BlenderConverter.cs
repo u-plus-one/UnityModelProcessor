@@ -84,7 +84,6 @@ namespace ModelProcessor.Editor
 				var transform = transforms[i];
 				if(transform == root.transform) continue;
 
-				if(transform.TryGetComponent<Light>(out _) || transform.TryGetComponent<Camera>(out _)) continue; //skip light transforms
 				var transformationMatrix = ApplyTransformFix(transform, matchAxes);
 				transformationDeltas.Add(transform, transformationMatrix);
 			}
