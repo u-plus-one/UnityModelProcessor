@@ -352,6 +352,16 @@ namespace ModelProcessor.Editor
 
 			Matrix4x4 after = t.localToWorldMatrix;
 
+			if (t.TryGetComponent<Camera>(out _) || t.TryGetComponent<Light>(out _))
+			{
+				t.Rotate(new Vector3(-90f, 0f, 0f), Space.Self);
+
+				if (flipZ)
+				{
+					t.Rotate(new Vector3(0f, 0f, 180f), Space.Self);
+				}
+			}
+
 			return after * before.inverse;
 		}
 
