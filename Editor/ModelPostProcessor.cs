@@ -1,4 +1,5 @@
 ﻿using System.IO;
+using System.Linq;
 using UnityEditor;
 using UnityEditor.PackageManager;
 using UnityEditor.PackageManager.Requests;
@@ -8,6 +9,8 @@ namespace ModelProcessor.Editor
 {
 	public class ModelPostProcessor : AssetPostprocessor
 	{
+		public const string PACKAGE_ID = "com.github.u-plus-one.unitymodelprocessor";
+
 		private const string BLENDER_CREATOR_ID = "Blender (stable FBX IO)";
 
 		private static readonly byte[] fileHeaderData = new byte[512];
@@ -31,19 +34,13 @@ namespace ModelProcessor.Editor
 
 		private static void PackageStatusCheckUpdate()
 		{
-			while(!listReq.IsCompleted)
+			if(!listReq.IsCompleted)
 			{
 				return;
 			}
 			//Check if the package itself is embedded
 			var collection = listReq.Result;
-			foreach(var item in collection)
-			{
-				if(item.name == "com.github.u-plus-one.unitymodelprocessor")
-				{
-					IsEmbeddedPackage = item.source == PackageSource.Embedded;
-				}
-			}
+			IsEmbeddedPackage = listReq.Result.First(p => p.name == PACKAGE_ID).source == PackageSource.Embedded;
 			if(!IsEmbeddedPackage)
 			{
 				//Turn off verbose logging if the package is not embedded
