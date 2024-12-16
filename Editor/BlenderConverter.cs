@@ -79,12 +79,22 @@ namespace ModelProcessor.Editor
 
 			var transformationDeltas = new Dictionary<Transform, Matrix4x4>();
 			var transforms = root.GetComponentsInChildren<Transform>(true);
+
+			bool rootHasMesh = root.TryGetComponent<MeshFilter>(out _) || root.TryGetComponent<SkinnedMeshRenderer>(out _);
+			if(rootHasMesh)
+			{
+				//Fix root transform
+				var a = root.transform;
+				var transformationMatrix = ApplyTransformFix(a, matchAxes, true);
+				transformationDeltas.Add(a, transformationMatrix);
+			}
+
 			for(int i = 0; i < transforms.Length; i++)
 			{
 				var transform = transforms[i];
 				if(transform == root.transform) continue;
 
-				var transformationMatrix = ApplyTransformFix(transform, matchAxes);
+				var transformationMatrix = ApplyTransformFix(transform, matchAxes, rootHasMesh);
 				transformationDeltas.Add(transform, transformationMatrix);
 			}
 
@@ -92,6 +102,7 @@ namespace ModelProcessor.Editor
 			Matrix4x4 matrix = Matrix4x4.Rotate(rotation);
 			foreach(var mesh in meshes)
 			{
+				//if(GetDepth(mesh.FirstUser) == 0) continue;
 				ApplyMeshFix(mesh, matrix, modelImporter.importTangents != ModelImporterTangents.None);
 			}
 
@@ -308,7 +319,7 @@ namespace ModelProcessor.Editor
 			mesh.RecalculateBounds();
 		}
 
-		private static Matrix4x4 ApplyTransformFix(Transform t, bool flipZ)
+		private static Matrix4x4 ApplyTransformFix(Transform t, bool matchAxes, bool rootHasMesh)
 		{
 			Matrix4x4 before = t.localToWorldMatrix;
 
@@ -316,7 +327,7 @@ namespace ModelProcessor.Editor
 			VerboseLog($"Fixing transform: {t.name} (depth {depth})");
 
 			//Fix position
-			if(depth > 1)
+			if(depth > 1 || rootHasMesh)
 			{
 				t.localPosition = ROTATION_FIX_MATRIX.MultiplyPoint(t.localPosition);
 			}
@@ -336,7 +347,7 @@ namespace ModelProcessor.Editor
 				c.rotation = originalRotations[c];
 			}
 
-			if(flipZ)
+			if(matchAxes)
 			{
 				//Mirror local positions and rotations
 				t.localPosition = Vector3.Scale(t.localPosition, Z_FLIP_SCALE);
@@ -355,7 +366,7 @@ namespace ModelProcessor.Editor
 			{
 				t.Rotate(new Vector3(-90f, 0f, 0f), Space.Self);
 
-				if (flipZ)
+				if (matchAxes)
 				{
 					t.Rotate(new Vector3(0f, 0f, 180f), Space.Self);
 				}
