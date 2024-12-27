@@ -219,6 +219,8 @@ namespace ModelProcessor.Editor
 
 		protected override void Apply()
 		{
+			if(serializedObject == null) return;	
+
 			// tabs can do work before or after the application of changes in the serialization object
 			foreach(var tab in tabs)
 			{

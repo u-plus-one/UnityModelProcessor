@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using UnityEditor;
 using UnityEditorInternal;
 using UnityEngine;
@@ -7,8 +6,6 @@ namespace ModelProcessor.Editor.RuleSystem
 {
 	internal static class GUIUtils
 	{
-		private static Dictionary<string, ReorderableList> lists = new Dictionary<string, ReorderableList>();
-
 		private static GUIStyle toggleButtonStyle;
 
 		public static GUIStyle ToggleButtonStyle
@@ -45,65 +42,46 @@ namespace ModelProcessor.Editor.RuleSystem
 			return new Color32(gray, gray, gray, alpha);
 		}
 
-		public static void ClearLists()
+		public static ReorderableList CreateReorderableList(SerializedProperty listProperty)
 		{
-			lists.Clear();
-		}
+			var list = new ReorderableList(listProperty.serializedObject, listProperty, true, true, true, true);
 
-		public static ReorderableList GetList(SerializedProperty property, SerializedProperty listProperty, bool allowFoldout, System.Action<Rect, SerializedProperty> drawHeaderAction)
-		{
-			if(lists.TryGetValue(listProperty.propertyPath, out var list) && listProperty.serializedObject != null)
+			list.elementHeight = EditorGUIUtility.singleLineHeight;
+
+			list.drawHeaderCallback = rect =>
 			{
-				return list;
-			}
-			else
+				GUI.Label(rect, listProperty.displayName, EditorStyles.boldLabel);
+			};
+
+			list.drawElementCallback = (Rect rect, int index, bool isActive, bool isFocused) =>
 			{
-				list = new ReorderableList(listProperty.serializedObject, listProperty, true, true, true, true);
-
-				list.elementHeight = EditorGUIUtility.singleLineHeight;
-
-				list.drawHeaderCallback = rect =>
+				if(listProperty.isExpanded)
 				{
-					GUI.Label(rect, listProperty.displayName, EditorStyles.boldLabel);
-					drawHeaderAction?.Invoke(rect, property);
-					if(allowFoldout)
-					{
-						var newRect = new Rect(rect.x + 10, rect.y, rect.width - 10, rect.height);
-						listProperty.isExpanded = EditorGUI.Foldout(newRect, listProperty.isExpanded, listProperty.displayName, true);
-					}
-				};
+					rect.xMin -= 8;
+					EditorGUI.PropertyField(rect, listProperty.GetArrayElementAtIndex(index), GUIContent.none);
+				}
+			};
 
-				list.drawElementCallback = (Rect rect, int index, bool isActive, bool isFocused) =>
+			list.elementHeightCallback = (int indexer) =>
+			{
+				if(!listProperty.isExpanded)
 				{
-					if(listProperty.isExpanded)
-					{
-						rect.xMin -= 8;
-						EditorGUI.PropertyField(rect, listProperty.GetArrayElementAtIndex(index), GUIContent.none);
-					}
-				};
-
-				list.elementHeightCallback = (int indexer) =>
+					return 0;
+				}
+				else
 				{
-					if(!listProperty.isExpanded)
+					if(list.elementHeight > 0)
 					{
-						return 0;
+						return list.elementHeight;
 					}
 					else
 					{
-						if(list.elementHeight > 0)
-						{
-							return list.elementHeight;
-						}
-						else
-						{
-							return EditorGUI.GetPropertyHeight(list.serializedProperty.GetArrayElementAtIndex(indexer));
-						}
+						return EditorGUI.GetPropertyHeight(list.serializedProperty.GetArrayElementAtIndex(indexer));
 					}
-				};
+				}
+			};
 
-				lists[listProperty.propertyPath] = list;
-				return lists[listProperty.propertyPath];
-			}
+			return list;
 		}
 
 		public static void Split(Rect input, float width, out Rect l, out Rect r)

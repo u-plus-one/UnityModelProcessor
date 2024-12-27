@@ -1,4 +1,5 @@
 ﻿using UnityEditor;
+using UnityEditorInternal;
 using UnityEngine;
 
 namespace ModelProcessor.Editor.RuleSystem
@@ -7,6 +8,8 @@ namespace ModelProcessor.Editor.RuleSystem
 	{
 		public SerializedObject extraDataSerializedObject;
 
+		private ReorderableList list;
+
 		public void OnEnable()
 		{
 
@@ -14,7 +17,7 @@ namespace ModelProcessor.Editor.RuleSystem
 
 		public void OnDisable()
 		{
-			GUIUtils.ClearLists();
+			
 		}
 
 		public void OnInspectorGUI()
@@ -38,15 +41,21 @@ namespace ModelProcessor.Editor.RuleSystem
 		{
 			var set = extraDataSerializedObject.FindProperty(nameof(ModelProcessorSettings.ruleSet));
 			var enabled = set.FindPropertyRelative(nameof(RuleSet.enabled));
-			var rules = set.FindPropertyRelative(nameof(RuleSet.rules));
 
 			GUILayout.Space(20);
 			GUILayout.Label("Rule Set", EditorStyles.boldLabel);
 			EditorGUILayout.PropertyField(enabled);
 			using(new EditorGUI.DisabledGroupScope(!enabled.boolValue))
 			{
-				var list = GUIUtils.GetList(set, rules, false, null);
-				list.elementHeight = 0;
+				if(list == null)
+				{
+					list = GUIUtils.CreateReorderableList(extraDataSerializedObject
+						.FindProperty(nameof(ModelProcessorSettings.ruleSet))
+						.FindPropertyRelative(nameof(RuleSet.rules)));
+					list.elementHeight = 0;
+					list.showDefaultBackground = true;
+				}
+
 				list.DoLayoutList();
 			}
 		}

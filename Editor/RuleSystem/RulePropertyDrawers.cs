@@ -1,8 +1,12 @@
+using NUnit.Framework;
+using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using UnityEditor;
+using UnityEditorInternal;
 using UnityEngine;
 using UnityEngine.Rendering;
+using UnityEngine.UIElements;
 
 namespace ModelProcessor.Editor.RuleSystem
 {
@@ -13,11 +17,40 @@ namespace ModelProcessor.Editor.RuleSystem
 
 		private static GUIStyle headerStyle = null;
 
+		private Dictionary<string, ReorderableList> lists = new Dictionary<string, ReorderableList>();
+
 		private static string[] conditionOperatorNames = System.Enum.GetNames(typeof(Operator)).Select(s => s.ToUpper()).ToArray();
+
+		public override VisualElement CreatePropertyGUI(SerializedProperty property)
+		{
+			Debug.Log("hoi");
+			return base.CreatePropertyGUI(property);
+		}
 
 		public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
 		{
+			var conditions = property.FindPropertyRelative(nameof(Rule.conditions));
+			var actions = property.FindPropertyRelative(nameof(Rule.actions));
+
 			if(headerStyle == null) headerStyle = new GUIStyle(EditorStyles.toolbar) { fixedHeight = 0 };
+			if(!lists.TryGetValue(conditions.propertyPath, out var conditionsList))
+			{
+				conditionsList = GUIUtils.CreateReorderableList(conditions);
+				conditionsList.showDefaultBackground = false;
+				conditionsList.drawHeaderCallback = pos => DrawConditionsHeader(conditionsList, pos, property);
+				conditionsList.footerHeight = 16;
+				conditionsList.drawFooterCallback = pos => DrawListFooter(conditionsList, pos);
+				lists[conditions.propertyPath] = conditionsList;
+			}
+			if(!lists.TryGetValue(actions.propertyPath, out var actionsList))
+			{
+				actionsList = GUIUtils.CreateReorderableList(actions);
+				actionsList.showDefaultBackground = false;
+				actionsList.drawHeaderCallback = pos => DrawActionsHeader(actionsList, pos, property);
+				actionsList.footerHeight = 16;
+				actionsList.drawFooterCallback = pos => DrawListFooter(actionsList, pos);
+				lists[actions.propertyPath] = actionsList;
+			}
 
 			position.xMin -= 8;
 
@@ -26,11 +59,6 @@ namespace ModelProcessor.Editor.RuleSystem
 			boxPosition.xMax += 2;
 			boxPosition.yMax -= SPACING;
 			GUI.Box(boxPosition, GUIContent.none, EditorStyles.helpBox);
-
-			var conditionOperator = property.FindPropertyRelative(nameof(Rule.conditionOperator));
-			var conditions = property.FindPropertyRelative(nameof(Rule.conditions));
-			var actions = property.FindPropertyRelative(nameof(Rule.actions));
-			var applyToChildren = property.FindPropertyRelative(nameof(Rule.applyToChildren));
 
 			position.height = EditorGUIUtility.singleLineHeight;
 			var headerPos = position;
@@ -42,20 +70,52 @@ namespace ModelProcessor.Editor.RuleSystem
 			//Header
 			EditorGUI.LabelField(headerPos, property.displayName, EditorStyles.centeredGreyMiniLabel);
 			//Conditions
-			GUIUtils.GetList(property, conditions, false, DrawConditionsHeader).DoList(conditionsPos);
+			//GUI.Box(conditionsPos, GUIContent.none, EditorStyles.helpBox);
+			conditionsList.DoList(conditionsPos);
 			//Actions
-			GUIUtils.GetList(property, actions, false, DrawActionsHeader).DoList(actionsPos);
+			//GUI.Box(actionsPos, GUIContent.none, EditorStyles.helpBox);
+			actionsList.DoList(actionsPos);
 		}
 
-		private void DrawConditionsHeader(Rect pos, SerializedProperty property)
+		private void DrawListHeader(ReorderableList list, Rect pos)
 		{
+			var boxPos = pos;
+			boxPos.xMin -= 8;
+			boxPos.xMax += 8;
+			boxPos.yMin -= 2;
+			boxPos.yMax += 2;
+			GUI.Box(boxPos, GUIContent.none, EditorStyles.helpBox);
+			GUI.Label(pos, list.serializedProperty.displayName, EditorStyles.boldLabel);
+		}
+
+		private void DrawListFooter(ReorderableList list, Rect pos)
+		{
+			pos.xMax -= 8;
+			GUIUtils.SplitRight(pos, pos.height, out pos, out var removePos);
+			GUIUtils.SplitRight(pos, pos.height, out pos, out var addPos);
+			if(GUI.Button(addPos, ReorderableList.defaultBehaviours.iconToolbarPlus, ReorderableList.defaultBehaviours.preButton))
+			{
+				ReorderableList.defaultBehaviours.DoAddButton(list);
+			}
+			GUI.enabled = list.count > 0;
+			if(GUI.Button(removePos, ReorderableList.defaultBehaviours.iconToolbarMinus, ReorderableList.defaultBehaviours.preButton))
+			{
+				ReorderableList.defaultBehaviours.DoRemoveButton(list);
+			}
+			GUI.enabled = true;
+		}
+
+		private void DrawConditionsHeader(ReorderableList list, Rect pos, SerializedProperty property)
+		{
+			DrawListHeader(list, pos);
 			pos.xMin = pos.xMax - 120;
 			var op = property.FindPropertyRelative(nameof(Rule.conditionOperator));
 			op.intValue = GUI.Toolbar(pos, op.intValue, conditionOperatorNames);
 		}
 
-		private void DrawActionsHeader(Rect pos, SerializedProperty property)
+		private void DrawActionsHeader(ReorderableList list, Rect pos, SerializedProperty property)
 		{
+			DrawListHeader(list, pos);
 			pos.xMin = pos.xMax - 120;
 			var applyToChildren = property.FindPropertyRelative(nameof(Rule.applyToChildren));
 			applyToChildren.boolValue = EditorGUI.ToggleLeft(pos, "Apply to Children", applyToChildren.boolValue);
