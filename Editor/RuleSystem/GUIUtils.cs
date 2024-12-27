@@ -1,3 +1,5 @@
+using System;
+using System.Reflection;
 using UnityEditor;
 using UnityEditorInternal;
 using UnityEngine;
@@ -42,7 +44,7 @@ namespace ModelProcessor.Editor.RuleSystem
 			return new Color32(gray, gray, gray, alpha);
 		}
 
-		public static ReorderableList CreateReorderableList(SerializedProperty listProperty)
+		public static ReorderableList CreateReorderableList(SerializedProperty listProperty, bool allowFoldout)
 		{
 			var list = new ReorderableList(listProperty.serializedObject, listProperty, true, true, true, true);
 
@@ -50,6 +52,21 @@ namespace ModelProcessor.Editor.RuleSystem
 
 			list.drawHeaderCallback = rect =>
 			{
+				if(allowFoldout)
+				{
+					rect.xMin += 10;
+					EditorGUI.BeginChangeCheck();
+					listProperty.isExpanded = EditorGUI.Foldout(rect, listProperty.isExpanded, GUIContent.none, true);
+					if(EditorGUI.EndChangeCheck())
+					{
+						//Fixes broken GUI after changing expanded state
+#if UNITY_2021_2_OR_NEWER
+						typeof(ReorderableList).GetMethod("InvalidateCache", BindingFlags.Instance | BindingFlags.NonPublic)?.Invoke(list, Array.Empty<object>());
+#else
+						typeof(ReorderableList).GetMethod("ClearCache", BindingFlags.Instance | BindingFlags.NonPublic)?.Invoke(list, Array.Empty<object>());
+#endif
+					}
+				}
 				GUI.Label(rect, listProperty.displayName, EditorStyles.boldLabel);
 			};
 

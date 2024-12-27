@@ -35,7 +35,7 @@ namespace ModelProcessor.Editor.RuleSystem
 			if(headerStyle == null) headerStyle = new GUIStyle(EditorStyles.toolbar) { fixedHeight = 0 };
 			if(!lists.TryGetValue(conditions.propertyPath, out var conditionsList))
 			{
-				conditionsList = GUIUtils.CreateReorderableList(conditions);
+				conditionsList = GUIUtils.CreateReorderableList(conditions, false);
 				conditionsList.showDefaultBackground = false;
 				conditionsList.drawHeaderCallback = pos => DrawConditionsHeader(conditionsList, pos, property);
 				conditionsList.footerHeight = 16;
@@ -44,7 +44,7 @@ namespace ModelProcessor.Editor.RuleSystem
 			}
 			if(!lists.TryGetValue(actions.propertyPath, out var actionsList))
 			{
-				actionsList = GUIUtils.CreateReorderableList(actions);
+				actionsList = GUIUtils.CreateReorderableList(actions, false);
 				actionsList.showDefaultBackground = false;
 				actionsList.drawHeaderCallback = pos => DrawActionsHeader(actionsList, pos, property);
 				actionsList.footerHeight = 16;

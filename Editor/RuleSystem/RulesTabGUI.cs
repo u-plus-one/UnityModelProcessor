@@ -51,7 +51,7 @@ namespace ModelProcessor.Editor.RuleSystem
 				{
 					list = GUIUtils.CreateReorderableList(extraDataSerializedObject
 						.FindProperty(nameof(ModelProcessorSettings.ruleSet))
-						.FindPropertyRelative(nameof(RuleSet.rules)));
+						.FindPropertyRelative(nameof(RuleSet.rules)), true);
 					list.elementHeight = 0;
 					list.showDefaultBackground = true;
 				}
