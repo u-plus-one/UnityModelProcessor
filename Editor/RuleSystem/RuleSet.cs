@@ -1,7 +1,7 @@
 using System;
 using UnityEngine;
 
-namespace ModelProcessor.Editor
+namespace ModelProcessor.Editor.RuleSystem
 {
 	[System.Serializable]
 	public class RuleSet

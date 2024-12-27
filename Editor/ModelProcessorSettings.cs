@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿using ModelProcessor.Editor.RuleSystem;
+using UnityEngine;
 
 namespace ModelProcessor.Editor
 {

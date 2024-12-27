@@ -1,7 +1,7 @@
 ﻿using UnityEditor;
 using UnityEngine;
 
-namespace ModelProcessor.Editor
+namespace ModelProcessor.Editor.RuleSystem
 {
 	public class RulesTabGUI
 	{
