@@ -29,8 +29,11 @@ namespace ModelProcessor.Editor.RuleSystem
 
 		public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
 		{
+			property.isExpanded = true;
 			var conditions = property.FindPropertyRelative(nameof(Rule.conditions));
+			conditions.isExpanded = true;
 			var actions = property.FindPropertyRelative(nameof(Rule.actions));
+			actions.isExpanded = true;
 
 			if(headerStyle == null) headerStyle = new GUIStyle(EditorStyles.toolbar) { fixedHeight = 0 };
 			if(!lists.TryGetValue(conditions.propertyPath, out var conditionsList))
