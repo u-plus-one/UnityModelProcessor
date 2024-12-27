@@ -34,6 +34,7 @@ namespace ModelProcessor.Editor
 			//Header
 			EditorGUI.LabelField(headerLine, property.displayName, EditorStyles.boldLabel);
 
+			/*
 			//Condition line
 			Split(conditionLine, 220, out var conditionTypePos, out var conditionParamPos);
 			SplitRight(conditionParamPos, 50, out conditionParamPos, out var conditionInvertPos);
@@ -72,6 +73,7 @@ namespace ModelProcessor.Editor
 			DrawActionParameter(actionParamPos, property);
 			EditorGUIUtility.labelWidth = 120;
 			EditorGUI.PropertyField(actionLine2, property.FindPropertyRelative(nameof(Rule.applyToChildren)));
+			*/
 		}
 
 		private void OnConditionTypeChanged(Rule.ConditionType lastType, Rule.ConditionType newType, SerializedProperty property)
@@ -90,7 +92,7 @@ namespace ModelProcessor.Editor
 					defaultValue = "";
 					break;
 			}
-			property.FindPropertyRelative(nameof(Rule.conditionParam)).stringValue = defaultValue;
+			property.FindPropertyRelative(nameof(Rule.Condition.parameter)).stringValue = defaultValue;
 		}
 
 		private void OnActionTypeChanged(Rule.ActionType lastType, Rule.ActionType newType, SerializedProperty property)
@@ -115,7 +117,7 @@ namespace ModelProcessor.Editor
 					defaultValue = "";
 					break;
 			}
-			property.FindPropertyRelative(nameof(Rule.actionParam)).stringValue = defaultValue;
+			property.FindPropertyRelative(nameof(Rule.Action.parameter)).stringValue = defaultValue;
 		}
 
 		public override float GetPropertyHeight(SerializedProperty property, GUIContent label)
@@ -126,8 +128,8 @@ namespace ModelProcessor.Editor
 
 		private void DrawConditionParameter(Rect position, SerializedProperty prop)
 		{
-			var conditionType = (Rule.ConditionType)prop.FindPropertyRelative(nameof(Rule.condition)).intValue;
-			var conditionParam = prop.FindPropertyRelative(nameof(Rule.conditionParam));
+			var conditionType = (Rule.ConditionType)prop.FindPropertyRelative(nameof(Rule.Condition.type)).intValue;
+			var conditionParam = prop.FindPropertyRelative(nameof(Rule.Condition.parameter));
 			string value = conditionParam.stringValue;
 			switch(conditionType)
 			{
@@ -154,8 +156,8 @@ namespace ModelProcessor.Editor
 
 		private void DrawActionParameter(Rect position, SerializedProperty prop)
 		{
-			var actionType = (Rule.ActionType)prop.FindPropertyRelative(nameof(Rule.action)).intValue;
-			var paramProp = prop.FindPropertyRelative(nameof(Rule.actionParam));
+			var actionType = (Rule.ActionType)prop.FindPropertyRelative(nameof(Rule.Action.type)).intValue;
+			var paramProp = prop.FindPropertyRelative(nameof(Rule.Action.parameter));
 			string value = paramProp.stringValue;
 			switch(actionType)
 			{

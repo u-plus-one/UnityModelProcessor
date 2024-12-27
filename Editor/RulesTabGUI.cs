@@ -54,12 +54,5 @@ namespace ModelProcessor.Editor
 			GUILayout.EndVertical();
 			*/
 		}
-
-		private void DrawRule(SerializedProperty rule, int index)
-		{
-			GUILayout.Label(new GUIContent("Rule " + index));
-			var condition = rule.FindPropertyRelative(nameof(Rule.condition));
-			EditorGUILayout.PropertyField(condition);
-		}
 	}
 }

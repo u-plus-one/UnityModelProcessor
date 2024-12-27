@@ -7,29 +7,11 @@ namespace ModelProcessor.Editor
 	[System.Serializable]
 	public class Rule
 	{
-		public struct PartInfo
+		public enum Operator : byte
 		{
-			public readonly GameObject gameObject;
-			public readonly string name;
-			public readonly string hierarchyPath;
-			public readonly int childDepth;
-
-			public PartInfo(GameObject g)
-			{
-				var t = g.transform;
-				gameObject = g;
-				name = g.name;
-				childDepth = 0;
-				hierarchyPath = t.name;
-				while(t.parent != null)
-				{
-					childDepth++;
-					hierarchyPath = t.parent.name + "/" + hierarchyPath;
-					t = t.parent;
-				}
-			}
+			And = 0,
+			Or = 1
 		}
-
 		public enum ConditionType : int
 		{
 			[InspectorName("Always")]
@@ -124,13 +106,201 @@ namespace ModelProcessor.Editor
 			AddHelperComponent = 999
 		}
 
-		public ConditionType condition = ConditionType.Always;
-		public bool invertCondition;
-		public string conditionParam = "";
+		public class Condition
+		{
+			public bool invert;
+			public ConditionType type = ConditionType.Always;
+			public string parameter = "";
 
-		public ActionType action = ActionType.None;
-		public string actionParam = "";
+			public bool Evaluate(PartInfo p)
+			{
+				bool result = PerformCheck(p);
+				if(invert) result = !result;
+				return result;
+			}
+
+			private bool PerformCheck(PartInfo p)
+			{
+				switch(type)
+				{
+					case ConditionType.Always:
+						return true;
+					case ConditionType.RootObject:
+						return p.childDepth == 0;
+					case ConditionType.NameStartsWith:
+						return p.gameObject.name.StartsWith(parameter);
+					case ConditionType.NameEndsWith:
+						return p.gameObject.name.EndsWith(parameter);
+					case ConditionType.NameContains:
+						return p.gameObject.name.Contains(parameter);
+					case ConditionType.NameMatchesRegex:
+						return System.Text.RegularExpressions.Regex.IsMatch(p.gameObject.name, parameter);
+					case ConditionType.PathStartsWith:
+						return p.hierarchyPath.StartsWith(parameter);
+					case ConditionType.PathEndsWith:
+						return p.hierarchyPath.EndsWith(parameter);
+					case ConditionType.PathContains:
+						return p.hierarchyPath.Contains(parameter);
+					case ConditionType.PathMatchesRegex:
+						return System.Text.RegularExpressions.Regex.IsMatch(p.hierarchyPath, parameter);
+					case ConditionType.ChildDepthEquals:
+						return p.childDepth == int.Parse(parameter);
+					case ConditionType.ChildDepthGreaterThan:
+						return p.childDepth > int.Parse(parameter);
+					case ConditionType.ChildDepthGreaterOrEqual:
+						return p.childDepth >= int.Parse(parameter);
+					case ConditionType.ChildDepthLessThan:
+						return p.childDepth < int.Parse(parameter);
+					case ConditionType.ChildDepthLessOrEqual:
+						return p.childDepth <= int.Parse(parameter);
+					case ConditionType.HasChildren:
+						return p.gameObject.transform.childCount > 0;
+					case ConditionType.HasMesh:
+						return p.gameObject.TryGetComponent<Renderer>(out _);
+					case ConditionType.HasSkinnedMesh:
+						return p.gameObject.TryGetComponent<SkinnedMeshRenderer>(out _);
+					case ConditionType.HasCollider:
+						return p.gameObject.TryGetComponent<Collider>(out _);
+					case ConditionType.HasLight:
+						return p.gameObject.TryGetComponent<Light>(out _);
+					case ConditionType.HasCamera:
+						return p.gameObject.TryGetComponent<Camera>(out _);
+					case ConditionType.IsEmpty:
+						return p.childDepth > 0 && p.gameObject.GetComponents<Component>().Length == 1;
+					case ConditionType.IsEmptyWithoutChildren:
+						return p.childDepth > 0 && p.gameObject.GetComponents<Component>().Length == 1 && p.gameObject.transform.childCount == 0;
+					default:
+						Debug.LogError($"Model processor condition of type '{type}' is not implemented.");
+						return false;
+				}
+			}
+		}
+
+		public class Action
+		{
+			public ActionType type = ActionType.None;
+			public string parameter = "";
+
+			public void Apply(PartInfo part)
+			{
+				switch(type)
+				{
+					case ActionType.None:
+						break;
+					case ActionType.SetGameObjectInactive:
+						part.gameObject.SetActive(false);
+						break;
+					case ActionType.DestroyGameObject:
+						Object.DestroyImmediate(part.gameObject);
+						break;
+					case ActionType.MarkStatic:
+						//Set all static flags
+						GameObjectUtility.SetStaticEditorFlags(part.gameObject, (StaticEditorFlags)~0);
+						break;
+					case ActionType.SetStaticFlags:
+						GameObjectUtility.SetStaticEditorFlags(part.gameObject, (StaticEditorFlags)int.Parse(parameter));
+						break;
+					case ActionType.SetLayer:
+						part.gameObject.layer = LayerMask.NameToLayer(parameter);
+						break;
+					case ActionType.SetTag:
+						part.gameObject.tag = !string.IsNullOrWhiteSpace(parameter) ? parameter : "Untagged";
+						break;
+					case ActionType.DestroyChildObjects:
+						foreach(Transform child in part.gameObject.transform)
+						{
+							Object.DestroyImmediate(child.gameObject);
+						}
+						break;
+					case ActionType.SetName:
+						if(string.IsNullOrEmpty(parameter))
+						{
+							Debug.LogError("Attempted to set game object to an empty name.");
+						}
+						part.gameObject.name = parameter;
+						break;
+					case ActionType.PrependName:
+						part.gameObject.name = parameter + part.gameObject.name;
+						break;
+					case ActionType.AppendName:
+						part.gameObject.name += parameter;
+						break;
+					case ActionType.RemoveRenderer:
+						if(part.gameObject.TryGetComponent<MeshFilter>(out var filter))
+							Object.DestroyImmediate(filter);
+						if(part.gameObject.TryGetComponent(out Renderer renderer))
+							Object.DestroyImmediate(renderer);
+						break;
+					case ActionType.RemoveCollider:
+						if(part.gameObject.TryGetComponent<Collider>(out var collider))
+							Object.DestroyImmediate(collider);
+						break;
+					case ActionType.AddHelperComponent:
+						var type = System.Type.GetType("HelperComponent,Assembly-CSharp", false, true);
+						if(type != null)
+						{
+							part.gameObject.AddComponent(type);
+						}
+						else
+						{
+							Debug.LogError("AddHelperComponent requires a script named 'HelperComponent' in the project.");
+						}
+						break;
+					case ActionType.SetCastShadowsMode:
+						if(part.gameObject.TryGetComponent(out renderer))
+						{
+							var mode = (UnityEngine.Rendering.ShadowCastingMode)System.Enum.Parse(typeof(UnityEngine.Rendering.ShadowCastingMode), parameter);
+							renderer.shadowCastingMode = mode;
+						}
+						break;
+					case ActionType.SetReceiveShadowsMode:
+						if(part.gameObject.TryGetComponent(out renderer))
+						{
+							renderer.receiveShadows = bool.Parse(parameter);
+						}
+						break;
+					case ActionType.SetLightmapScale:
+						if(part.gameObject.TryGetComponent(out renderer))
+						{
+							SerializedObject so = new SerializedObject(renderer);
+							so.FindProperty("m_ScaleInLightmap").floatValue = float.Parse(parameter);
+							so.ApplyModifiedProperties();
+						}
+						break;
+					default:
+						Debug.LogError($"Model processor action of type '{this.type}' is not implemented.");
+						break;
+				}
+			}
+		}
+
+		public struct PartInfo
+		{
+			public readonly GameObject gameObject;
+			public readonly string name;
+			public readonly string hierarchyPath;
+			public readonly int childDepth;
+
+			public PartInfo(GameObject g)
+			{
+				var t = g.transform;
+				gameObject = g;
+				name = g.name;
+				childDepth = 0;
+				hierarchyPath = t.name;
+				while(t.parent != null)
+				{
+					childDepth++;
+					hierarchyPath = t.parent.name + "/" + hierarchyPath;
+					t = t.parent;
+				}
+			}
+		}
+
+		public Operator conditionOperator = Operator.And;
+		public Condition[] conditions;
 		public bool applyToChildren = false;
+		public Action[] actions;
 
 		public void ApplyToModel(GameObject modelRoot)
 		{
@@ -139,192 +309,78 @@ namespace ModelProcessor.Editor
 
 		private void ApplyRecursively(PartInfo obj)
 		{
-			bool applied = ApplyOnObject(obj);
+			//Apply the rule to the object
+			bool result = ApplyOnObject(obj);
 			//Check if the object itself wasn't destroyed
-			if(obj.gameObject != null)
+			if(obj.gameObject == null) return;
+			//Rule was already applied to its children, no need to reiterate
+			if (result && applyToChildren) return;
+			foreach(var child in GetChildren(obj.gameObject.transform))
 			{
-				if(!(applied && applyToChildren))
-				{
-					var children = new List<Transform>();
-					for(int i = 0; i < obj.gameObject.transform.childCount; i++)
-					{
-						children.Add(obj.gameObject.transform.GetChild(i));
-					}
-					foreach(var child in children)
-					{
-						ApplyRecursively(new PartInfo(child.gameObject));
-					}
-				}
+				ApplyRecursively(new PartInfo(child.gameObject));
 			}
 		}
 
-		public bool ApplyOnObject(PartInfo obj)
+		private Transform[] GetChildren(Transform t)
 		{
-			bool condition = CheckCondition(obj);
-			if(invertCondition) condition = !condition;
-			if(condition)
+			var children = new Transform[t.childCount];
+			for(int i = 0; i < t.childCount; i++)
+			{
+				children[i] = t.GetChild(i);
+			}
+			return children;
+		}
+
+		public bool ApplyOnObject(PartInfo p)
+		{
+			if(CheckConditions(p))
 			{
 				if(applyToChildren)
 				{
-					foreach(var child in obj.gameObject.GetComponentsInChildren<Transform>(true))
+					foreach(var child in p.gameObject.GetComponentsInChildren<Transform>(true))
 					{
-						PerformAction(new PartInfo(child.gameObject));
+						ApplyActions(new PartInfo(child.gameObject));
 					}
 				}
 				else
 				{
-					PerformAction(new PartInfo(obj.gameObject));
+					ApplyActions(new PartInfo(p.gameObject));
 				}
 				return true;
 			}
 			return false;
 		}
 
-		private bool CheckCondition(PartInfo obj)
+		private bool CheckConditions(PartInfo p)
 		{
-			switch(condition)
+			if(conditions == null || conditions.Length == 0) return true;
+			if(conditionOperator == Operator.And)
 			{
-				case ConditionType.Always:
-					return true;
-				case ConditionType.RootObject:
-					return obj.childDepth == 0;
-				case ConditionType.NameStartsWith:
-					return obj.gameObject.name.StartsWith(conditionParam);
-				case ConditionType.NameEndsWith:
-					return obj.gameObject.name.EndsWith(conditionParam);
-				case ConditionType.NameContains:
-					return obj.gameObject.name.Contains(conditionParam);
-				case ConditionType.NameMatchesRegex:
-					return System.Text.RegularExpressions.Regex.IsMatch(obj.gameObject.name, conditionParam);
-				case ConditionType.PathStartsWith:
-					return obj.hierarchyPath.StartsWith(conditionParam);
-				case ConditionType.PathEndsWith:
-					return obj.hierarchyPath.EndsWith(conditionParam);
-				case ConditionType.PathContains:
-					return obj.hierarchyPath.Contains(conditionParam);
-				case ConditionType.PathMatchesRegex:
-					return System.Text.RegularExpressions.Regex.IsMatch(obj.hierarchyPath, conditionParam);
-				case ConditionType.ChildDepthEquals:
-					return obj.childDepth == int.Parse(conditionParam);
-				case ConditionType.ChildDepthGreaterThan:
-					return obj.childDepth > int.Parse(conditionParam);
-				case ConditionType.ChildDepthGreaterOrEqual:
-					return obj.childDepth >= int.Parse(conditionParam);
-				case ConditionType.ChildDepthLessThan:
-					return obj.childDepth < int.Parse(conditionParam);
-				case ConditionType.ChildDepthLessOrEqual:
-					return obj.childDepth <= int.Parse(conditionParam);
-				case ConditionType.HasChildren:
-					return obj.gameObject.transform.childCount > 0;
-				case ConditionType.HasMesh:
-					return obj.gameObject.TryGetComponent<Renderer>(out _);
-				case ConditionType.HasSkinnedMesh:
-					return obj.gameObject.TryGetComponent<SkinnedMeshRenderer>(out _);
-				case ConditionType.HasCollider:
-					return obj.gameObject.TryGetComponent<Collider>(out _);
-				case ConditionType.HasLight:
-					return obj.gameObject.TryGetComponent<Light>(out _);
-				case ConditionType.HasCamera:
-					return obj.gameObject.TryGetComponent<Camera>(out _);
-				case ConditionType.IsEmpty:
-					return obj.childDepth > 0 && obj.gameObject.GetComponents<Component>().Length == 1;
-				case ConditionType.IsEmptyWithoutChildren:
-					return obj.childDepth > 0 && obj.gameObject.GetComponents<Component>().Length == 1 && obj.gameObject.transform.childCount == 0;
-				default:
-					Debug.LogError($"Model processor condition of type '{condition}' is not implemented.");
-					return false;
+				foreach(var c in conditions)
+				{
+					if(!c.Evaluate(p)) return false;
+				}
+				return true;
+			}
+			else if(conditionOperator == Operator.Or)
+			{
+				foreach(var c in conditions)
+				{
+					if(c.Evaluate(p)) return true;
+				}
+				return false;
+			}
+			else
+			{
+				throw new System.NotImplementedException();
 			}
 		}
 
-		private void PerformAction(PartInfo part)
+		private void ApplyActions(PartInfo p)
 		{
-			switch(action)
+			foreach(var a in actions)
 			{
-				case ActionType.None:
-					break;
-				case ActionType.SetGameObjectInactive:
-					part.gameObject.SetActive(false);
-					break;
-				case ActionType.DestroyGameObject:
-					Object.DestroyImmediate(part.gameObject);
-					break;
-				case ActionType.MarkStatic:
-					//Set all static flags
-					GameObjectUtility.SetStaticEditorFlags(part.gameObject, (StaticEditorFlags)~0);
-					break;
-				case ActionType.SetStaticFlags:
-					GameObjectUtility.SetStaticEditorFlags(part.gameObject, (StaticEditorFlags)int.Parse(actionParam));
-					break;
-				case ActionType.SetLayer:
-					part.gameObject.layer = LayerMask.NameToLayer(actionParam);
-					break;
-				case ActionType.SetTag:
-					part.gameObject.tag = !string.IsNullOrWhiteSpace(actionParam) ? actionParam : "Untagged";
-					break;
-				case ActionType.DestroyChildObjects:
-					foreach(Transform child in part.gameObject.transform)
-					{
-						Object.DestroyImmediate(child.gameObject);
-					}
-					break;
-				case ActionType.SetName:
-					if(string.IsNullOrEmpty(actionParam))
-					{
-						Debug.LogError("Attempted to set game object to an empty name.");
-					}
-					part.gameObject.name = actionParam;
-					break;
-				case ActionType.PrependName:
-					part.gameObject.name = actionParam + part.gameObject.name;
-					break;
-				case ActionType.AppendName:
-					part.gameObject.name += actionParam;
-					break;
-				case ActionType.RemoveRenderer:
-					if(part.gameObject.TryGetComponent<MeshFilter>(out var filter))
-						Object.DestroyImmediate(filter);
-					if(part.gameObject.TryGetComponent(out Renderer renderer))
-						Object.DestroyImmediate(renderer);
-					break;
-				case ActionType.RemoveCollider:
-					if(part.gameObject.TryGetComponent<Collider>(out var collider))
-						Object.DestroyImmediate(collider);
-					break;
-				case ActionType.AddHelperComponent:
-					var type = System.Type.GetType("HelperComponent,Assembly-CSharp", false, true);
-					if(type != null)
-					{
-						part.gameObject.AddComponent(type);
-					}
-					else
-					{
-						Debug.LogError("AddHelperComponent requires a script named 'HelperComponent' in the project.");
-					}
-					break;
-				case ActionType.SetCastShadowsMode:
-					if(part.gameObject.TryGetComponent(out renderer))
-					{
-						var mode = (UnityEngine.Rendering.ShadowCastingMode)System.Enum.Parse(typeof(UnityEngine.Rendering.ShadowCastingMode), actionParam);
-						renderer.shadowCastingMode = mode;
-					}
-					break;
-				case ActionType.SetReceiveShadowsMode:
-					if(part.gameObject.TryGetComponent(out renderer))
-					{
-						renderer.receiveShadows = bool.Parse(actionParam);
-					}
-					break;
-				case ActionType.SetLightmapScale:
-					if(part.gameObject.TryGetComponent(out renderer))
-					{
-						SerializedObject so = new SerializedObject(renderer);
-						so.FindProperty("m_ScaleInLightmap").floatValue = float.Parse(actionParam);
-						so.ApplyModifiedProperties();
-					}
-					break;
-				default:
-					Debug.LogError($"Model processor action of type '{action}' is not implemented.");
-					break;
+				a.Apply(p);
 			}
 		}
 	}
