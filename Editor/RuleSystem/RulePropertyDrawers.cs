@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Linq;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.Rendering;
@@ -8,7 +9,11 @@ namespace ModelProcessor.Editor.RuleSystem
 	[CustomPropertyDrawer(typeof(Rule))]
 	public class RuleGUI : PropertyDrawer
 	{
+		const float SPACING = 10;
+
 		private static GUIStyle headerStyle = null;
+
+		private static string[] conditionOperatorNames = System.Enum.GetNames(typeof(Operator)).Select(s => s.ToUpper()).ToArray();
 
 		public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
 		{
@@ -19,7 +24,7 @@ namespace ModelProcessor.Editor.RuleSystem
 			var boxPosition = position;
 			boxPosition.xMin -= 2;
 			boxPosition.xMax += 2;
-			boxPosition.yMax -= EditorGUIUtility.standardVerticalSpacing;
+			boxPosition.yMax -= SPACING;
 			GUI.Box(boxPosition, GUIContent.none, EditorStyles.helpBox);
 
 			var conditionOperator = property.FindPropertyRelative(nameof(Rule.conditionOperator));
@@ -35,11 +40,25 @@ namespace ModelProcessor.Editor.RuleSystem
 			EditorGUIUtility.labelWidth = 60;
 
 			//Header
-			EditorGUI.LabelField(headerPos, property.displayName, EditorStyles.boldLabel);
+			EditorGUI.LabelField(headerPos, property.displayName, EditorStyles.centeredGreyMiniLabel);
 			//Conditions
-			EditorGUI.PropertyField(conditionsPos, conditions);
+			GUIUtils.GetList(property, conditions, false, DrawConditionsHeader).DoList(conditionsPos);
 			//Actions
-			EditorGUI.PropertyField(actionsPos, actions);
+			GUIUtils.GetList(property, actions, false, DrawActionsHeader).DoList(actionsPos);
+		}
+
+		private void DrawConditionsHeader(Rect pos, SerializedProperty property)
+		{
+			pos.xMin = pos.xMax - 120;
+			var op = property.FindPropertyRelative(nameof(Rule.conditionOperator));
+			op.intValue = GUI.Toolbar(pos, op.intValue, conditionOperatorNames);
+		}
+
+		private void DrawActionsHeader(Rect pos, SerializedProperty property)
+		{
+			pos.xMin = pos.xMax - 120;
+			var applyToChildren = property.FindPropertyRelative(nameof(Rule.applyToChildren));
+			applyToChildren.boolValue = EditorGUI.ToggleLeft(pos, "Apply to Children", applyToChildren.boolValue);
 		}
 
 		public override float GetPropertyHeight(SerializedProperty property, GUIContent label)
@@ -49,7 +68,7 @@ namespace ModelProcessor.Editor.RuleSystem
 			h += EditorGUI.GetPropertyHeight(property.FindPropertyRelative(nameof(Rule.conditions)));
 			h += EditorGUIUtility.standardVerticalSpacing;
 			h += EditorGUI.GetPropertyHeight(property.FindPropertyRelative(nameof(Rule.actions)));
-			h += EditorGUIUtility.standardVerticalSpacing;
+			h += SPACING;
 			return h;
 		}
 	}
@@ -58,7 +77,7 @@ namespace ModelProcessor.Editor.RuleSystem
 	{
 		public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
 		{
-			position.xMin -= 10;
+			position.xMin += 6;
 			position.height = EditorGUIUtility.singleLineHeight;
 			DrawGUI(position, property);
 		}
@@ -220,83 +239,6 @@ namespace ModelProcessor.Editor.RuleSystem
 					break;
 			}
 			property.FindPropertyRelative(nameof(Action.parameter)).stringValue = defaultValue;
-		}
-	}
-
-	internal static class GUIUtils
-	{
-		private static GUIStyle toggleButtonStyle;
-
-		public static GUIStyle ToggleButtonStyle
-		{
-			get
-			{
-				if(toggleButtonStyle == null)
-				{
-					toggleButtonStyle = new GUIStyle(EditorStyles.helpBox)
-					{
-						alignment = TextAnchor.MiddleCenter,
-						normal = { textColor = TextColor(0.5f) },
-						hover = { textColor = TextColor(0.75f) },
-						onNormal = { textColor = TextColor(1) },
-						onHover = { textColor = TextColor(1) },
-					};
-				}
-				return toggleButtonStyle;
-			}
-		}
-
-		public static bool ToggleButton(Rect pos, string content, bool state)
-		{
-			GUI.color = new Color(1, 1, 1, state ? 1f : 0.33f);
-			var result = GUI.Toggle(pos, state, content, ToggleButtonStyle);
-			GUI.color = Color.white;
-			return result;
-		}
-
-		public static Color32 TextColor(float a)
-		{
-			byte gray = (byte)(EditorGUIUtility.isProSkin ? 210 : 9);
-			byte alpha = (byte)(a * 255f);
-			return new Color32(gray, gray, gray, alpha);
-		}
-
-		public static void Split(Rect input, float width, out Rect l, out Rect r)
-		{
-			l = input;
-			l.width = width;
-			r = input;
-			r.xMin += width + 2;
-		}
-
-		public static void SplitRight(Rect input, float width, out Rect l, out Rect r)
-		{
-			l = input;
-			l.xMax -= width + 2;
-			r = input;
-			r.xMin = input.xMax - width;
-		}
-
-		public static int AsInt(string s, int fallback = 0)
-		{
-			return int.TryParse(s, out var result) ? result : fallback;
-		}
-
-		public static float AsFloat(string s, float fallback = 0)
-		{
-			return float.TryParse(s, out var result) ? result : fallback;
-		}
-
-		public static bool AsBool(string s, bool fallback = false)
-		{
-			return AsInt(s, fallback ? 1 : 0) > 0;
-		}
-
-		public static Rect NextProperty(Rect pos, float height)
-		{
-			pos.y += pos.height + EditorGUIUtility.standardVerticalSpacing;
-			pos.height = height;
-			return pos;
 		}
 	}
 }

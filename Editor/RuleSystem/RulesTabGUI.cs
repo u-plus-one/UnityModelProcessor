@@ -14,7 +14,7 @@ namespace ModelProcessor.Editor.RuleSystem
 
 		public void OnDisable()
 		{
-
+			GUIUtils.ClearLists();
 		}
 
 		public void OnInspectorGUI()
@@ -37,22 +37,18 @@ namespace ModelProcessor.Editor.RuleSystem
 		private void DrawRuleSet()
 		{
 			var set = extraDataSerializedObject.FindProperty(nameof(ModelProcessorSettings.ruleSet));
-			EditorGUILayout.PropertyField(set);
-			/*
-			GUILayout.Label("Rules", EditorStyles.boldLabel);
-			GUILayout.BeginVertical(EditorStyles.helpBox);
-			var rulesEnabled = set.FindPropertyRelative(nameof(RuleSet.enabled));
-			EditorGUILayout.PropertyField(rulesEnabled);
-			GUI.enabled = rulesEnabled.boolValue;
+			var enabled = set.FindPropertyRelative(nameof(RuleSet.enabled));
 			var rules = set.FindPropertyRelative(nameof(RuleSet.rules));
-			for(int i = 0; i < rules.arraySize; i++)
+
+			GUILayout.Space(20);
+			GUILayout.Label("Rule Set", EditorStyles.boldLabel);
+			EditorGUILayout.PropertyField(enabled);
+			using(new EditorGUI.DisabledGroupScope(!enabled.boolValue))
 			{
-				var rule = rules.GetArrayElementAtIndex(i);
-				DrawRule(rule, i);
+				var list = GUIUtils.GetList(set, rules, false, null);
+				list.elementHeight = 0;
+				list.DoLayoutList();
 			}
-			GUI.enabled = true;
-			GUILayout.EndVertical();
-			*/
 		}
 	}
 }
