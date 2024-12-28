@@ -100,12 +100,13 @@ namespace ModelProcessor.Editor.RuleSystem
 			{
 				ReorderableList.defaultBehaviours.DoAddButton(list);
 			}
-			GUI.enabled = list.count > 0;
-			if(GUI.Button(removePos, ReorderableList.defaultBehaviours.iconToolbarMinus, ReorderableList.defaultBehaviours.preButton))
+			using(new EditorGUI.DisabledGroupScope(list.count <= 0))
 			{
-				ReorderableList.defaultBehaviours.DoRemoveButton(list);
+				if(GUI.Button(removePos, ReorderableList.defaultBehaviours.iconToolbarMinus, ReorderableList.defaultBehaviours.preButton))
+				{
+					ReorderableList.defaultBehaviours.DoRemoveButton(list);
+				}
 			}
-			GUI.enabled = true;
 		}
 
 		private void DrawConditionsHeader(ReorderableList list, Rect pos, SerializedProperty property)
