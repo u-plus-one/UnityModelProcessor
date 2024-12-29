@@ -43,6 +43,7 @@ namespace ModelProcessor.Editor.RuleSystem
 				conditionsList.drawHeaderCallback = pos => DrawConditionsHeader(conditionsList, pos, property);
 				conditionsList.footerHeight = 16;
 				conditionsList.drawFooterCallback = pos => DrawListFooter(conditionsList, pos);
+				conditionsList.drawNoneElementCallback = pos => GUI.Label(pos, "None (All Objects)");
 				lists[conditions.propertyPath] = conditionsList;
 			}
 			if(!lists.TryGetValue(actions.propertyPath, out var actionsList))
