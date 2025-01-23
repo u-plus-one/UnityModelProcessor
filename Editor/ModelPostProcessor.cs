@@ -23,30 +23,17 @@ namespace ModelProcessor.Editor
 			set => EditorPrefs.SetBool("ModelProcessorVerboseLogging", value);
 		}
 
-		private static ListRequest listReq;
-
 		[InitializeOnLoadMethod]
 		private static void Init()
 		{
-			listReq = Client.List();
-			EditorApplication.update += PackageStatusCheckUpdate;
-		}
-
-		private static void PackageStatusCheckUpdate()
-		{
-			if(!listReq.IsCompleted)
-			{
-				return;
-			}
 			//Check if the package itself is embedded
-			var collection = listReq.Result;
-			IsEmbeddedPackage = listReq.Result.First(p => p.name == PACKAGE_ID).source == PackageSource.Embedded;
+			var packageInfo = UnityEditor.PackageManager.PackageInfo.FindForPackageName(PACKAGE_ID);
+			IsEmbeddedPackage = packageInfo.source == PackageSource.Embedded;
 			if(!IsEmbeddedPackage)
 			{
 				//Turn off verbose logging if the package is not embedded
 				VerboseLogging = false;
 			}
-			EditorApplication.update -= PackageStatusCheckUpdate;
 		}
 
 		//Entry point for unity to process models
