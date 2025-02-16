@@ -47,8 +47,15 @@ namespace ModelProcessor.Editor
 			if(customSettings.applyAxisConversion)
 			{
 				bool flipZ = customSettings.matchAxes;
-				BlenderConverter.FixTransforms(root, flipZ, modelImporter);
-				modified = true;
+				if(CanFixModel(root))
+				{
+					BlenderConverter.FixTransforms(root, flipZ, modelImporter);
+					modified = true;
+				}
+				else
+				{
+					Debug.LogWarning($"Skipping transform fix for {root.name} because the model is unsupported.");
+				}
 			}
 
 			//Apply light fix if enabled
@@ -79,6 +86,11 @@ namespace ModelProcessor.Editor
 			//Fix animation clips if model is imported with axis conversion enabled
 			if(customSettings.applyAxisConversion)
 			{
+				if(!CanFixModel(root))
+				{
+					Debug.LogWarning($"Skipping animation fix for clip {clip.name} because the model is unsupported.");
+					return;
+				}
 				bool flipZ = customSettings.matchAxes;
 				BlenderConverter.FixAnimationClipOrientation(clip, flipZ);
 				modelImporter.SaveAndReimport();
@@ -115,6 +127,12 @@ namespace ModelProcessor.Editor
 				//Not a blend file or FBX
 				return false;
 			}
+		}
+
+		private static bool CanFixModel(GameObject root)
+		{
+			//Check if the model has any skinned mesh renderers
+			return !root.GetComponentsInChildren<SkinnedMeshRenderer>().Any();
 		}
 	}
 }
