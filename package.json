@@ -1,6 +1,6 @@
 {
   "name": "com.github.u-plus-one.unitymodelprocessor",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "displayName": "Model Processor",
   "description": "Provides an asset post processor that is aimed towards fixing various issues related to importing blender models.",
   "unity": "2019.4",
