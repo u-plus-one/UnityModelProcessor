@@ -36,12 +36,25 @@ namespace ModelProcessor.Editor
 
 		private MultiObjectState blenderModelState;
 
+		private bool IsPreset
+		{
+			get
+			{
+#if UNITY_2022_1_OR_NEWER
+				return UnityEditor.Presets.Preset.IsEditorTargetAPreset(serializedObject.targetObject);
+#else
+				return false;
+#endif
+			}
+		}
+
+
 		protected override Type extraDataType => typeof(ModelProcessorSettings);
 
 		protected override void InitializeExtraDataInstance(UnityEngine.Object extraData, int targetIndex)
 		{
 			var assetPath = AssetDatabase.GetAssetPath(targets[targetIndex]);
-			var userData = AssetImporter.GetAtPath(assetPath).userData;
+			var userData = ((ModelImporter)targets[targetIndex]).userData;
 
 			var settings = (ModelProcessorSettings)extraData;
 			settings.LoadJson(userData);
@@ -78,7 +91,17 @@ namespace ModelProcessor.Editor
 			}
 			blenderModelState = blenderModels == targets.Length ? MultiObjectState.All : blenderModels > 0 ? MultiObjectState.Partial : MultiObjectState.None;
 
-			base.OnEnable();
+			try
+			{
+				base.OnEnable();
+			}
+			catch(Exception e)
+			{
+				if(ModelPostProcessor.VerboseLogging)
+				{
+					Debug.LogException(e);
+				}
+			}
 		}
 
 		public override void OnDisable()
@@ -87,7 +110,17 @@ namespace ModelProcessor.Editor
 			{
 				InvokeMethod(tab, "OnDisable");
 			}
-			base.OnDisable();
+			try
+			{
+				base.OnDisable();
+			}
+			catch(Exception e)
+			{
+				if(ModelPostProcessor.VerboseLogging)
+				{
+					Debug.LogException(e);
+				}
+			}
 		}
 
 		public override void OnInspectorGUI()
@@ -100,19 +133,24 @@ namespace ModelProcessor.Editor
 			//Draw the tab header
 			DrawTabHeader();
 
+			bool extraDataChanged = false;
 			if(activeTabIndex == 0)
 			{
 				//Draw custom settings for the model tab
 				extraDataSerializedObject.Update();
-				DrawCustomSettings();
+				extraDataChanged |= DrawCustomSettings();
 				extraDataSerializedObject.ApplyModifiedProperties();
 			}
 
 			//Draw the built-in GUI for the active tab
 			DrawActiveBuiltinTab();
 
-			serializedObject.ApplyModifiedProperties();
+			bool mainObjectChanged = serializedObject.ApplyModifiedProperties();
 			extraDataSerializedObject.ApplyModifiedProperties();
+			if(IsPreset && (mainObjectChanged || extraDataChanged))
+			{
+				SaveCustomSettings();
+			}
 
 			//Debugging section (only visible when the package is embedded)
 			if(ModelPostProcessor.IsEmbeddedPackage)
@@ -121,7 +159,10 @@ namespace ModelProcessor.Editor
 			}
 
 			//Apply and revert buttons
-			ApplyRevertGUI();
+			if(!IsPreset)
+			{
+				ApplyRevertGUI();
+			}
 		}
 
 		private void PackageDebugGUI()
@@ -148,12 +189,15 @@ namespace ModelProcessor.Editor
 			GUILayout.EndVertical();
 		}
 
-		private void DrawCustomSettings()
+		private bool DrawCustomSettings()
 		{
-			if(blenderModelState != MultiObjectState.None)
+			if(blenderModelState != MultiObjectState.None || IsPreset)
 			{
+				EditorGUI.BeginChangeCheck();
 				DrawBlenderSettings();
+				return EditorGUI.EndChangeCheck();
 			}
+			return false;
 		}
 
 		private void DrawBlenderSettings()
@@ -213,13 +257,18 @@ namespace ModelProcessor.Editor
 
 		private void DrawActiveBuiltinTab()
 		{
+			EditorGUI.BeginChangeCheck();
 			var activeTab = tabs[activeTabIndex];
 			InvokeMethod(activeTab, "OnInspectorGUI");
+			if(EditorGUI.EndChangeCheck() && IsPreset)
+			{
+				SaveCustomSettings();
+			}
 		}
 
 		protected override void Apply()
 		{
-			if(serializedObject == null) return;	
+			if(serializedObject == null) return;
 
 			// tabs can do work before or after the application of changes in the serialization object
 			foreach(var tab in tabs)
@@ -227,19 +276,24 @@ namespace ModelProcessor.Editor
 				InvokeMethod(tab, "PreApply");
 			}
 
-			for(int i = 0; i < targets.Length; i++)
-			{
-				//Serialize custom settings to user data
-				var extraData = (ModelProcessorSettings)extraDataTargets[i];
-				var userData = extraData.ToJson();
-				var path = AssetDatabase.GetAssetPath(targets[i]);
-				AssetImporter.GetAtPath(path).userData = userData;
-			}
+			SaveCustomSettings();
 			base.Apply();
 
 			foreach(var tab in tabs)
 			{
 				InvokeMethod(tab, "PostApply");
+			}
+		}
+
+		private void SaveCustomSettings()
+		{
+			for(int i = 0; i < targets.Length; i++)
+			{
+				//Serialize custom settings to user data
+				var extraData = (ModelProcessorSettings)extraDataTargets[i];
+				var userData = extraData.ToJson();
+				var mi = (ModelImporter)targets[i];
+				mi.userData = userData;
 			}
 		}
 
