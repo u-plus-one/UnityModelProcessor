@@ -53,7 +53,7 @@ namespace ModelProcessor.Editor
 					if(modelImporter.animationType == ModelImporterAnimationType.Human)
 					{
 						var desc = modelImporter.humanDescription;
-						BlenderConverter.FixHumanDescription(ref desc, flipZ);
+						BlenderConverter.FixHumanDescription(root, ref desc, flipZ);
 						modelImporter.humanDescription = desc;
 					}
 					modified = true;
