@@ -49,7 +49,7 @@ namespace ModelProcessor.Editor
 				bool flipZ = customSettings.matchAxes;
 				if(CanFixModel(root))
 				{
-					BlenderConverter.FixTransforms(root, flipZ, modelImporter);
+					BlenderConverter.FixModelOrientation(root, flipZ, modelImporter);
 					modified = true;
 				}
 				else

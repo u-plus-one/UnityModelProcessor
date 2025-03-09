@@ -7,33 +7,6 @@ namespace ModelProcessor.Editor
 {
 	public static class BlenderConverter
 	{
-		private class TransformCurves
-		{
-			public EditorCurveBinding positionX;
-			public EditorCurveBinding positionY;
-			public EditorCurveBinding positionZ;
-
-			public EditorCurveBinding rotationX;
-			public EditorCurveBinding rotationY;
-			public EditorCurveBinding rotationZ;
-			public EditorCurveBinding rotationW;
-
-			public EditorCurveBinding scaleX;
-			public EditorCurveBinding scaleY;
-			public EditorCurveBinding scaleZ;
-		}
-
-		private struct TransformSnapshot
-		{
-			public Vector3 position;
-			public Quaternion rotation;
-
-			public TransformSnapshot(Transform t)
-			{
-				position = t.position;
-				rotation = t.rotation;
-			}
-		}
 
 		private class MeshInfo
 		{
@@ -58,21 +31,37 @@ namespace ModelProcessor.Editor
 			}
 		}
 
-		const float SQRT2_HALF = 0.70710678f;
-		private static readonly Vector3 Z_FLIP_SCALE = new Vector3(-1, 1, -1);
+		private class TransformCurves
+		{
+			public EditorCurveBinding positionX;
+			public EditorCurveBinding positionY;
+			public EditorCurveBinding positionZ;
+
+			public EditorCurveBinding rotationX;
+			public EditorCurveBinding rotationY;
+			public EditorCurveBinding rotationZ;
+			public EditorCurveBinding rotationW;
+
+			public EditorCurveBinding scaleX;
+			public EditorCurveBinding scaleY;
+			public EditorCurveBinding scaleZ;
+		}
+
+		private const float SQRT2_HALF = 0.70710678f;
+
+		private static readonly Vector3 MA_SCALE = new Vector3(-1, 1, -1);
 		//(-90°, 0°, 0°)
 		private static readonly Quaternion ROTATION_FIX = new Quaternion(-SQRT2_HALF, 0, 0, SQRT2_HALF);
 		//(-90°, 180°, 0°)
-		private static readonly Quaternion ROTATION_FIX_Z_FLIP = new Quaternion(0, SQRT2_HALF, SQRT2_HALF, 0);
+		private static readonly Quaternion ROTATION_FIX_MA = new Quaternion(0, SQRT2_HALF, SQRT2_HALF, 0);
 		//(90°, 0°, 0°)
 		private static readonly Quaternion ANIM_ROTATION_FIX = new Quaternion(SQRT2_HALF, 0, 0, SQRT2_HALF);
-
 		//(-90°, 0°, 0°)
 		private static readonly Matrix4x4 ROTATION_FIX_MATRIX = Matrix4x4.Rotate(ROTATION_FIX);
 		//(-90°, 180°, 0°)
-		private static readonly Matrix4x4 ROTATION_FIX_MATRIX_Z_FLIP = Matrix4x4.Rotate(ROTATION_FIX_Z_FLIP);
+		private static readonly Matrix4x4 ROTATION_FIX_MATRIX_MA = Matrix4x4.Rotate(ROTATION_FIX_MA);
 
-		public static void FixTransforms(GameObject root, bool matchAxes, ModelImporter modelImporter)
+		public static void FixModelOrientation(GameObject root, bool matchAxes, ModelImporter modelImporter)
 		{
 			VerboseLog("Applying fix on " + root.name);
 			var meshes = GatherMeshes(root.transform);
@@ -98,18 +87,10 @@ namespace ModelProcessor.Editor
 				transformationDeltas.Add(transform, transformationMatrix);
 			}
 
-			Quaternion rotation = matchAxes ? ROTATION_FIX_Z_FLIP : ROTATION_FIX;
-			Matrix4x4 matrix = Matrix4x4.Rotate(rotation);
 			foreach(var mesh in meshes)
 			{
 				//if(GetDepth(mesh.FirstUser) == 0) continue;
-				ApplyMeshFix(mesh, matrix, modelImporter.importTangents != ModelImporterTangents.None);
-			}
-
-			List<Mesh> fixedSkinnedMeshes = new List<Mesh>();
-			foreach(var skinnedMeshRenderer in root.GetComponentsInChildren<SkinnedMeshRenderer>(true))
-			{
-				ApplyBindPoseFix(skinnedMeshRenderer, transformationDeltas, fixedSkinnedMeshes, matchAxes);
+				ApplyMeshFix(mesh, matchAxes, modelImporter.importTangents != ModelImporterTangents.None);
 			}
 		}
 
@@ -163,7 +144,7 @@ namespace ModelProcessor.Editor
 						Vector3 outTangents = new Vector3(keyX.outTangent, keyY.outTangent, keyZ.outTangent);
 						if(childDepth > 0)
 						{
-							var matrix = flipZ ? ROTATION_FIX_MATRIX_Z_FLIP : ROTATION_FIX_MATRIX;
+							var matrix = flipZ ? ROTATION_FIX_MATRIX_MA : ROTATION_FIX_MATRIX;
 							pos = matrix.MultiplyPoint(pos);
 							inTangents = matrix.MultiplyPoint(inTangents);
 							outTangents = matrix.MultiplyPoint(outTangents);
@@ -172,9 +153,9 @@ namespace ModelProcessor.Editor
 						{
 							if(flipZ)
 							{
-								pos = Vector3.Scale(pos, Z_FLIP_SCALE);
-								inTangents = Vector3.Scale(inTangents, Z_FLIP_SCALE);
-								outTangents = Vector3.Scale(outTangents, Z_FLIP_SCALE);
+								pos = Vector3.Scale(pos, MA_SCALE);
+								inTangents = Vector3.Scale(inTangents, MA_SCALE);
+								outTangents = Vector3.Scale(outTangents, MA_SCALE);
 							}
 						}
 						posXCurve.MoveKey(i, new Keyframe(time, pos.x, inTangents.x, outTangents.x));
@@ -295,47 +276,6 @@ namespace ModelProcessor.Editor
 			return list;
 		}
 
-		private static void ApplyMeshFix(MeshInfo mi, Matrix4x4 transformation, bool calculateTangents)
-		{
-			VerboseLog("Fixing mesh: " + mi.mesh.name);
-			var mesh = mi.mesh;
-			var verts = mesh.vertices;
-
-			//Transform vertices
-			for(int i = 0; i < verts.Length; i++)
-			{
-				verts[i] = transformation.MultiplyPoint(verts[i]);
-			}
-			mesh.vertices = verts;
-
-			//Transform normals
-			if(mesh.normals != null)
-			{
-				var normals = mesh.normals;
-				for(int i = 0; i < verts.Length; i++)
-				{
-					normals[i] = transformation.MultiplyPoint(normals[i]);
-				}
-				mesh.normals = normals;
-			}
-
-			//Transform tangents
-			//TODO: find out if / how to do it
-			/*
-			for(int i = 0; i < tangents.Length; i++)
-			{
-				tangents[i] = matrix.MultiplyPoint3x4(tangents[i]);
-			}
-			*/
-			//m.SetTangents(tangents);
-
-			if(calculateTangents)
-			{
-				mesh.RecalculateTangents();
-			}
-			mesh.RecalculateBounds();
-		}
-
 		private static Matrix4x4 ApplyTransformFix(Transform t, bool matchAxes, bool rootHasMesh)
 		{
 			Matrix4x4 before = t.localToWorldMatrix;
@@ -367,7 +307,7 @@ namespace ModelProcessor.Editor
 			if(matchAxes)
 			{
 				//Mirror local positions and rotations
-				t.localPosition = Vector3.Scale(t.localPosition, Z_FLIP_SCALE);
+				t.localPosition = Vector3.Scale(t.localPosition, MA_SCALE);
 				var q1 = t.localRotation;
 				q1.x *= -1;
 				q1.z *= -1;
@@ -379,11 +319,11 @@ namespace ModelProcessor.Editor
 
 			Matrix4x4 after = t.localToWorldMatrix;
 
-			if (t.TryGetComponent<Camera>(out _) || t.TryGetComponent<Light>(out _))
+			if(t.TryGetComponent<Camera>(out _) || t.TryGetComponent<Light>(out _))
 			{
 				t.Rotate(new Vector3(-90f, 0f, 0f), Space.Self);
 
-				if (matchAxes)
+				if(matchAxes)
 				{
 					t.Rotate(new Vector3(0f, 0f, 180f), Space.Self);
 				}
@@ -392,18 +332,51 @@ namespace ModelProcessor.Editor
 			return after * before.inverse;
 		}
 
-		//TODO: Find out how to modify bind poses to match the new bone positions
-		private static void ApplyBindPoseFix(SkinnedMeshRenderer skinnedMeshRenderer, Dictionary<Transform, Matrix4x4> transformations, List<Mesh> fixedMeshes, bool matchAxes)
+		private static void ApplyMeshFix(MeshInfo mi, bool matchAxes, bool calculateTangents)
 		{
-			var m = skinnedMeshRenderer.sharedMesh;
+			VerboseLog("Fixing mesh: " + mi.mesh.name);
+			var mesh = mi.mesh;
+			var verts = mesh.vertices;
 
-			if(fixedMeshes.Contains(m)) return;
-
-			fixedMeshes.Add(m);
-
-			if(m.bindposes != null)
+			var transformationMatrix = matchAxes ? ROTATION_FIX_MATRIX_MA : ROTATION_FIX_MATRIX;
+			var rotationFix = matchAxes ? ROTATION_FIX_MA : ROTATION_FIX;
+			//Transform vertices
+			for(int i = 0; i < verts.Length; i++)
 			{
-				var bindposes = m.bindposes;
+				verts[i] = transformationMatrix.MultiplyPoint(verts[i]);
+			}
+			mesh.vertices = verts;
+
+			//Transform normals
+			if(mesh.normals != null)
+			{
+				var normals = mesh.normals;
+				for(int i = 0; i < verts.Length; i++)
+				{
+					normals[i] = transformationMatrix.MultiplyPoint(normals[i]);
+				}
+				mesh.normals = normals;
+			}
+
+			//Transform tangents
+			//TODO: find out if / how to do it
+			/*
+			for(int i = 0; i < tangents.Length; i++)
+			{
+				tangents[i] = matrix.MultiplyPoint3x4(tangents[i]);
+			}
+			*/
+			//m.SetTangents(tangents);
+
+			if(calculateTangents)
+			{
+				mesh.RecalculateTangents();
+			}
+			mesh.RecalculateBounds();
+
+			if(mesh.bindposes != null)
+			{
+				var bindposes = mesh.bindposes;
 				if(bindposes != null)
 				{
 					for(int i = 0; i < bindposes.Length; i++)
@@ -412,22 +385,13 @@ namespace ModelProcessor.Editor
 						var pos = bp.GetPosition();
 						var rot = bp.rotation;
 						var scale = bp.lossyScale;
-						if(matchAxes)
-						{
-							pos = ROTATION_FIX_MATRIX_Z_FLIP.MultiplyPoint(pos);
-							rot = ROTATION_FIX_Z_FLIP * rot * ROTATION_FIX_Z_FLIP;
-						}
-						else
-						{
-							pos = ROTATION_FIX_MATRIX.MultiplyPoint(pos);
-							rot = ROTATION_FIX * rot * ROTATION_FIX;
-						}
+						pos = transformationMatrix.MultiplyPoint(pos);
+						rot = rotationFix * rot * rotationFix;
 						scale = new Vector3(scale.x, scale.z, scale.y);
 						bindposes[i] = Matrix4x4.TRS(pos, rot, scale);
 					}
 				}
-				m.bindposes = bindposes;
-				VerboseLog("Bindposes fixed for " + m.name);
+				mesh.bindposes = bindposes;
 			}
 		}
 
