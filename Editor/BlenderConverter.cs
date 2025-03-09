@@ -109,7 +109,7 @@ namespace ModelProcessor.Editor
 			List<Mesh> fixedSkinnedMeshes = new List<Mesh>();
 			foreach(var skinnedMeshRenderer in root.GetComponentsInChildren<SkinnedMeshRenderer>(true))
 			{
-				ApplyBindPoseFix(skinnedMeshRenderer, transformationDeltas, fixedSkinnedMeshes);
+				ApplyBindPoseFix(skinnedMeshRenderer, transformationDeltas, fixedSkinnedMeshes, matchAxes);
 			}
 		}
 
@@ -393,7 +393,7 @@ namespace ModelProcessor.Editor
 		}
 
 		//TODO: Find out how to modify bind poses to match the new bone positions
-		private static void ApplyBindPoseFix(SkinnedMeshRenderer skinnedMeshRenderer, Dictionary<Transform, Matrix4x4> transformations, List<Mesh> fixedMeshes)
+		private static void ApplyBindPoseFix(SkinnedMeshRenderer skinnedMeshRenderer, Dictionary<Transform, Matrix4x4> transformations, List<Mesh> fixedMeshes, bool matchAxes)
 		{
 			var m = skinnedMeshRenderer.sharedMesh;
 
@@ -408,8 +408,22 @@ namespace ModelProcessor.Editor
 				{
 					for(int i = 0; i < bindposes.Length; i++)
 					{
-						var fix = transformations[skinnedMeshRenderer.bones[i]];
-						bindposes[i] *= fix.inverse;
+						var bp = bindposes[i];
+						var pos = bp.GetPosition();
+						var rot = bp.rotation;
+						var scale = bp.lossyScale;
+						if(matchAxes)
+						{
+							pos = ROTATION_FIX_MATRIX_Z_FLIP.MultiplyPoint(pos);
+							rot = ROTATION_FIX_Z_FLIP * rot * ROTATION_FIX_Z_FLIP;
+						}
+						else
+						{
+							pos = ROTATION_FIX_MATRIX.MultiplyPoint(pos);
+							rot = ROTATION_FIX * rot * ROTATION_FIX;
+						}
+						scale = new Vector3(scale.x, scale.z, scale.y);
+						bindposes[i] = Matrix4x4.TRS(pos, rot, scale);
 					}
 				}
 				m.bindposes = bindposes;

@@ -131,8 +131,7 @@ namespace ModelProcessor.Editor
 
 		private static bool CanFixModel(GameObject root)
 		{
-			//Check if the model has any skinned mesh renderers
-			return !root.GetComponentsInChildren<SkinnedMeshRenderer>().Any();
+			return true;
 		}
 	}
 }
