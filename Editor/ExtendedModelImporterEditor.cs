@@ -3,6 +3,8 @@ using System.Reflection;
 using ModelProcessor.Editor.RuleSystem;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.UIElements;
+
 
 #if UNITY_2020_2_OR_NEWER
 using UnityEditor.AssetImporters;
@@ -22,6 +24,15 @@ namespace ModelProcessor.Editor
 			All
 		}
 
+		public enum Tab : int
+		{
+			Model = 0,
+			Rig = 1,
+			Animation = 2,
+			Materials = 3,
+			Processor = 4
+		}
+
 		private static readonly string[] tabNames = new string[] {
 			"Model",
 			"Rig",
@@ -31,10 +42,12 @@ namespace ModelProcessor.Editor
 		};
 
 		private object[] tabs;
-		private int activeTabIndex;
+		private Tab activeTabType;
 		private RulesTabGUI rulesTabGui;
 
 		private MultiObjectState blenderModelState;
+
+		private object ActiveTab => tabs[(int)activeTabType];
 
 		private bool IsPreset
 		{
@@ -48,6 +61,7 @@ namespace ModelProcessor.Editor
 			}
 		}
 
+		protected override bool useAssetDrawPreview => activeTabType != Tab.Animation;
 
 		protected override Type extraDataType => typeof(ModelProcessorSettings);
 
@@ -78,7 +92,7 @@ namespace ModelProcessor.Editor
 			{
 				InvokeMethod(tab, "OnEnable");
 			}
-			activeTabIndex = EditorPrefs.GetInt(GetType().Name + "ActiveEditorIndex");
+			activeTabType = (Tab)EditorPrefs.GetInt(GetType().Name + "ActiveEditorIndex");
 
 			//Check how many of the selected models are blender models
 			int blenderModels = 0;
@@ -134,7 +148,7 @@ namespace ModelProcessor.Editor
 			DrawTabHeader();
 
 			bool extraDataChanged = false;
-			if(activeTabIndex == 0)
+			if(activeTabType == 0)
 			{
 				//Draw custom settings for the model tab
 				extraDataSerializedObject.Update();
@@ -162,6 +176,38 @@ namespace ModelProcessor.Editor
 			if(!IsPreset)
 			{
 				ApplyRevertGUI();
+			}
+		}
+
+		public override bool HasPreviewGUI()
+		{
+			if(activeTabType != Tab.Processor)
+			{
+				return (bool)InvokeMethod(ActiveTab, "HasPreviewGUI");
+			}
+			else
+			{
+				return true;
+			}
+		}
+
+		public override void OnPreviewSettings()
+		{
+			if(activeTabType != Tab.Processor)
+			{
+				InvokeMethod(ActiveTab, "OnPreviewSettings");
+			}
+		}
+
+		private static object[] previewParams = new object[2];
+
+		public override void OnInteractivePreviewGUI(Rect r, GUIStyle background)
+		{
+			previewParams[0] = r;
+			previewParams[1] = background;
+			if(activeTabType != Tab.Processor)
+			{
+				InvokeMethod(ActiveTab, "OnInteractivePreviewGUI", previewParams);
 			}
 		}
 
@@ -243,11 +289,11 @@ namespace ModelProcessor.Editor
 					GUILayout.FlexibleSpace();
 					using(var check = new EditorGUI.ChangeCheckScope())
 					{
-						activeTabIndex = GUILayout.Toolbar(activeTabIndex, tabNames, "LargeButton", GUI.ToolbarButtonSize.FitToContents);
+						activeTabType = (Tab)GUILayout.Toolbar((int)activeTabType, tabNames, "LargeButton", GUI.ToolbarButtonSize.FitToContents);
 						if(check.changed)
 						{
-							EditorPrefs.SetInt(GetType().Name + "ActiveEditorIndex", activeTabIndex);
-							InvokeMethod(tabs[activeTabIndex], "OnInspectorGUI");
+							EditorPrefs.SetInt(GetType().Name + "ActiveEditorIndex", (int)activeTabType);
+							InvokeMethod(ActiveTab, "OnInspectorGUI");
 						}
 					}
 					GUILayout.FlexibleSpace();
@@ -258,8 +304,7 @@ namespace ModelProcessor.Editor
 		private void DrawActiveBuiltinTab()
 		{
 			EditorGUI.BeginChangeCheck();
-			var activeTab = tabs[activeTabIndex];
-			InvokeMethod(activeTab, "OnInspectorGUI");
+			InvokeMethod(ActiveTab, "OnInspectorGUI");
 			if(EditorGUI.EndChangeCheck() && IsPreset)
 			{
 				SaveCustomSettings();
@@ -297,23 +342,25 @@ namespace ModelProcessor.Editor
 			}
 		}
 
-		private static void InvokeMethod(object obj, string methodName, params object[] parameters)
+		private static object InvokeMethod(object obj, string methodName, params object[] parameters)
 		{
 			try
 			{
 				var method = obj.GetType().GetMethod(methodName, BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
 				if(method != null)
 				{
-					method.Invoke(obj, parameters);
+					return method.Invoke(obj, parameters);
 				}
 				else
 				{
 					Debug.LogError($"Could not find method to invoke: {methodName} on object {obj.GetType().Name}");
+					return null;
 				}
 			}
 			catch(Exception e)
 			{
 				Debug.LogException(e);
+				return null;
 			}
 		}
 	}
