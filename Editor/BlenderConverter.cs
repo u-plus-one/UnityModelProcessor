@@ -144,6 +144,7 @@ namespace ModelProcessor.Editor
 
 			foreach(var kv in transformCurves)
 			{
+				int childDepth = kv.Key.Count(c => c == '/');
 				var curves = kv.Value;
 				if(curves.positionX.path != null)
 				{
@@ -160,11 +161,21 @@ namespace ModelProcessor.Editor
 						Vector3 pos = new Vector3(keyX.value, keyY.value, keyZ.value);
 						Vector3 inTangents = new Vector3(keyX.inTangent, keyY.inTangent, keyZ.inTangent);
 						Vector3 outTangents = new Vector3(keyX.outTangent, keyY.outTangent, keyZ.outTangent);
-						if(flipZ)
+						if(childDepth > 0)
 						{
-							pos = Vector3.Scale(pos, Z_FLIP_SCALE);
-							inTangents = Vector3.Scale(inTangents, Z_FLIP_SCALE);
-							outTangents = Vector3.Scale(outTangents, Z_FLIP_SCALE);
+							var matrix = flipZ ? ROTATION_FIX_MATRIX_Z_FLIP : ROTATION_FIX_MATRIX;
+							pos = matrix.MultiplyPoint(pos);
+							inTangents = matrix.MultiplyPoint(inTangents);
+							outTangents = matrix.MultiplyPoint(outTangents);
+						}
+						else
+						{
+							if(flipZ)
+							{
+								pos = Vector3.Scale(pos, Z_FLIP_SCALE);
+								inTangents = Vector3.Scale(inTangents, Z_FLIP_SCALE);
+								outTangents = Vector3.Scale(outTangents, Z_FLIP_SCALE);
+							}
 						}
 						posXCurve.MoveKey(i, new Keyframe(time, pos.x, inTangents.x, outTangents.x));
 						posYCurve.MoveKey(i, new Keyframe(time, pos.y, inTangents.y, outTangents.y));
@@ -191,6 +202,12 @@ namespace ModelProcessor.Editor
 						Quaternion rot = new Quaternion(keyX.value, keyY.value, keyZ.value, keyW.value);
 						Quaternion inTangents = new Quaternion(keyX.inTangent, keyY.inTangent, keyZ.inTangent, keyW.inTangent);
 						Quaternion outTangents = new Quaternion(keyX.outTangent, keyY.outTangent, keyZ.outTangent, keyW.outTangent);
+						if(childDepth > 0)
+						{
+							rot = Quaternion.Inverse(ANIM_ROTATION_FIX) * rot;
+							inTangents = Quaternion.Inverse(ANIM_ROTATION_FIX) * inTangents;
+							outTangents = Quaternion.Inverse(ANIM_ROTATION_FIX) * outTangents;
+						}
 						if(flipZ)
 						{
 							var mirror = new Quaternion(0, 1, 0, 0);
