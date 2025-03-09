@@ -50,6 +50,12 @@ namespace ModelProcessor.Editor
 				if(CanFixModel(root))
 				{
 					BlenderConverter.FixModelOrientation(root, flipZ, modelImporter);
+					if(modelImporter.animationType == ModelImporterAnimationType.Human)
+					{
+						var desc = modelImporter.humanDescription;
+						BlenderConverter.FixHumanDescription(ref desc, flipZ);
+						modelImporter.humanDescription = desc;
+					}
 					modified = true;
 				}
 				else

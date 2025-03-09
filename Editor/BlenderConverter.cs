@@ -242,6 +242,19 @@ namespace ModelProcessor.Editor
 			return modified;
 		}
 
+		public static void FixHumanDescription(ref HumanDescription humanDescription, bool flipZ)
+		{
+			for(int i = 0; i < humanDescription.skeleton.Length; i++)
+			{
+				var bone = humanDescription.skeleton[i];
+				var posFixMatrix = flipZ ? ROTATION_FIX_MATRIX_MA : ROTATION_FIX_MATRIX;
+				var rotFix = flipZ ? ROTATION_FIX_MA : ROTATION_FIX;
+				bone.position = posFixMatrix.MultiplyPoint(bone.position);
+				bone.rotation = rotFix * bone.rotation * rotFix;
+				humanDescription.skeleton[i] = bone;
+			}
+		}
+
 		private static List<MeshInfo> GatherMeshes(Transform root)
 		{
 			var list = new List<MeshInfo>();
