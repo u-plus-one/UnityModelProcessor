@@ -414,7 +414,7 @@ namespace ModelProcessor.Editor
 						var rot = bp.rotation;
 						var scale = bp.lossyScale;
 						pos = transformationMatrix.MultiplyPoint(pos);
-						rot = rotationFix * rot * rotationFix;
+						rot = rotationFix * rot * Quaternion.Inverse(rotationFix);
 						scale = new Vector3(scale.x, scale.z, scale.y);
 						bindposes[i] = Matrix4x4.TRS(pos, rot, scale);
 					}
