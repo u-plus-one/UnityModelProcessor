@@ -242,29 +242,24 @@ namespace ModelProcessor.Editor
 			return modified;
 		}
 
-		public static void FixHumanDescription(GameObject root, ref HumanDescription humanDescription, bool flipZ)
+		//TODO: model needs to be imported twice for updated HumanDescription to take effect, and rig remains broken when turning off axis conversion
+		public static void FixHumanDescription(GameObject root, ref HumanDescription humanDescription, bool matchAxes)
 		{
+			root.name += "(Clone)";
+			var animator = root.GetComponent<Animator>();
+			VerboseLog($"Fixing HumanDescription for {root.name} (SkeletonBones: {humanDescription.skeleton.Length}, HumanBones: {humanDescription.human.Length})");
 			for(int i = 0; i < humanDescription.skeleton.Length; i++)
 			{
 				var bone = humanDescription.skeleton[i];
-				/*
-				var posFixMatrix = flipZ ? ROTATION_FIX_MATRIX_MA : ROTATION_FIX_MATRIX;
-				var rotFix = flipZ ? ROTATION_FIX_MA : ROTATION_FIX;
-				bone.position = posFixMatrix.MultiplyPoint(bone.position);
-				bone.rotation *= rotFix;
-				bone.scale = new Vector3(bone.scale.x, bone.scale.z, bone.scale.y);
-				*/
-				var humanBone = humanDescription.human[i];
-				var boneTransform = FindChildByName(root, humanBone.boneName);
+				var boneTransform = FindChildByName(root, bone.name);
 				if(boneTransform != null)
 				{
 					bone.position = boneTransform.localPosition;
 					bone.rotation = boneTransform.localRotation;
-					bone.rotation *= ROTATION_FIX;
 				}
 				else
 				{
-					Debug.LogWarning($"Bone {humanBone.humanName} not found in model");
+					Debug.LogWarning($"Bone {bone.name} not found in model");
 				}
 				humanDescription.skeleton[i] = bone;
 			}
