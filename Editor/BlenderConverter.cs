@@ -405,7 +405,11 @@ namespace ModelProcessor.Editor
 					for(int i = 0; i < bindposes.Length; i++)
 					{
 						var bp = bindposes[i];
+#if UNITY_2021_2_OR_NEWER
 						var pos = bp.GetPosition();
+#else
+						var pos = new Vector3(bp.m03, bp.m13, bp.m23);
+#endif
 						var rot = bp.rotation;
 						var scale = bp.lossyScale;
 						pos = transformationMatrix.MultiplyPoint(pos);

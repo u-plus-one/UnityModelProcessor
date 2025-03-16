@@ -27,7 +27,11 @@ namespace ModelProcessor.Editor
 		private static void Init()
 		{
 			//Check if the package itself is embedded
+#if UNITY_2022_3_OR_NEWER
 			var packageInfo = UnityEditor.PackageManager.PackageInfo.FindForPackageName(PACKAGE_ID);
+#else
+			var packageInfo = UnityEditor.PackageManager.PackageInfo.FindForAssetPath("Packages/" + PACKAGE_ID + "/package.json");
+#endif
 			IsEmbeddedPackage = packageInfo.source == PackageSource.Embedded;
 			if(!IsEmbeddedPackage)
 			{

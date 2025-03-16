@@ -25,7 +25,8 @@ namespace ModelProcessor.Editor
 
 		public object GetValue(string key, object fallback = default)
 		{
-			return data.GetValueOrDefault(key, fallback);
+			if(data.TryGetValue(key, out object value)) return value;
+			return fallback;
 		}
 
 		public bool GetBool(string key, bool fallback = default)
@@ -60,25 +61,6 @@ namespace ModelProcessor.Editor
 			}
 			data[key] = value;
 			IsDirty = true;
-		}
-
-		public void SetValue(SerializedProperty property)
-		{
-			SetValue(property.name, GetPropertyValue(property));
-		}
-
-		private static object GetPropertyValue(SerializedProperty property)
-		{
-			switch(property.propertyType)
-			{
-				case SerializedPropertyType.Boolean: return property.boolValue;
-				case SerializedPropertyType.Integer: return property.intValue;
-				case SerializedPropertyType.Float: return property.floatValue;
-				case SerializedPropertyType.String: return property.stringValue;
-				case SerializedPropertyType.ObjectReference: return property.objectReferenceValue;
-				case SerializedPropertyType.Generic: return property.boxedValue;
-				default: throw new System.NotImplementedException();
-			}
 		}
 
 		public string Serialize()

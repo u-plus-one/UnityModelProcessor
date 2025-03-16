@@ -207,7 +207,7 @@ namespace ModelProcessor.Editor
 			previewParams[1] = background;
 			if(activeTabType != Tab.Processor)
 			{
-				InvokeMethod(ActiveTab, "OnInteractivePreviewGUI", previewParams);
+				InvokeMethod(ActiveTab, "OnInteractivePreviewGUI", true, previewParams);
 			}
 		}
 
@@ -326,7 +326,7 @@ namespace ModelProcessor.Editor
 
 			foreach(var tab in tabs)
 			{
-				InvokeMethod(tab, "PostApply");
+				InvokeMethod(tab, "PostApply", false);
 			}
 		}
 
@@ -342,7 +342,7 @@ namespace ModelProcessor.Editor
 			}
 		}
 
-		private static object InvokeMethod(object obj, string methodName, params object[] parameters)
+		private static object InvokeMethod(object obj, string methodName, bool logError = true, params object[] parameters)
 		{
 			try
 			{
@@ -353,7 +353,7 @@ namespace ModelProcessor.Editor
 				}
 				else
 				{
-					Debug.LogError($"Could not find method to invoke: {methodName} on object {obj.GetType().Name}");
+					if(logError) Debug.LogError($"Could not find method to invoke: {methodName} on object {obj.GetType().Name}");
 					return null;
 				}
 			}
