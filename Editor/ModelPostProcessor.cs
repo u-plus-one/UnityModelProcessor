@@ -50,15 +50,24 @@ namespace ModelProcessor.Editor
 			//Apply transform orientation fix if enabled
 			if(customSettings.applyAxisConversion)
 			{
-				bool flipZ = customSettings.matchAxes;
 				if(CanFixModel(root))
 				{
-					BlenderConverter.FixModelOrientation(root, flipZ, modelImporter);
+					BlenderConverter.FixModelOrientation(root, customSettings.matchAxes, modelImporter);
 					if(modelImporter.animationType == ModelImporterAnimationType.Human)
 					{
-						var desc = modelImporter.humanDescription;
-						BlenderConverter.FixHumanDescription(root, ref desc, flipZ);
-						modelImporter.humanDescription = desc;
+						if(root.TryGetComponent(out Animator anim))
+						{
+							var avatar = anim.avatar;
+							var humanDesc = avatar.humanDescription;
+							humanDesc.human = humanDesc.human.ToArray();
+							humanDesc.skeleton = humanDesc.skeleton.ToArray();
+							BlenderConverter.FixHumanDescription(root, ref humanDesc, customSettings.matchAxes);
+							var newAvatar = AvatarBuilder.BuildHumanAvatar(root, humanDesc);
+							newAvatar.name = avatar.name;
+							anim.avatar = newAvatar;
+							Object.DestroyImmediate(avatar);
+							context.AddObjectToAsset("avatar", newAvatar);
+						}
 					}
 					modified = true;
 				}
