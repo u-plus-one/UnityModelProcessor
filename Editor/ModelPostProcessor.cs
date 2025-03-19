@@ -55,6 +55,7 @@ namespace ModelProcessor.Editor
 					BlenderConverter.FixModelOrientation(root, customSettings.matchAxes, modelImporter);
 					if(modelImporter.animationType == ModelImporterAnimationType.Human)
 					{
+						Debug.LogWarning($"Fixing humanoid models is currently a work in progress and may result in a broken model. ({root.name})");
 						if(root.TryGetComponent(out Animator anim))
 						{
 							var avatar = anim.avatar;
