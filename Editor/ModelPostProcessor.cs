@@ -91,6 +91,25 @@ namespace ModelProcessor.Editor
 				customSettings.ruleSet.ApplyRulesToModel(root);
 			}
 
+			if(customSettings.rootsToPrefabs)
+			{
+				foreach(Transform child in root.transform)
+				{
+					Debug.Log("adding "+child.name);
+					context.AddObjectToAsset("_" + child.name, child.gameObject);
+				}
+				Texture2D test = new Texture2D(16, 16);
+				for(int y = 0; y < test.height; y++)
+				{
+					for(int x = 0; x < test.width; x++)
+					{
+						test.SetPixel(x, y, Random.value > 0.5f ? Color.black : Color.white);
+					}
+				}
+				test.Apply();
+				context.AddObjectToAsset("testTexture", test);
+			}
+
 			//Save and reimport model if any changes were made
 			if(modified)
 			{

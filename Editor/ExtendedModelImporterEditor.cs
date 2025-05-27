@@ -274,6 +274,9 @@ namespace ModelProcessor.Editor
 				EditorGUI.indentLevel--;
 			}
 
+			var rootsToPrefabsProp = extraDataSerializedObject.FindProperty(nameof(ModelProcessorSettings.rootsToPrefabs));
+			EditorGUILayout.PropertyField(rootsToPrefabsProp);
+
 			//Add more blender related settings here
 		}
 

@@ -17,6 +17,9 @@ namespace ModelProcessor.Editor
 		[Tooltip("Factor to multiply the light range by")]
 		public float lightRangeFactor = 0.1f;
 
+		[Tooltip("Convert root objects to separate prefabs")]
+		public bool rootsToPrefabs = false;
+
 		public RuleSet ruleSet = new RuleSet();
 
 		public static ModelProcessorSettings FromJson(string userDataJson)
