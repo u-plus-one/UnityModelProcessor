@@ -93,22 +93,26 @@ namespace ModelProcessor.Editor
 
 			if(customSettings.rootsToPrefabs)
 			{
+				var collectionObject = ScriptableObject.CreateInstance<PrefabCollection>();
+				collectionObject.name = root.name;
+				context.AddObjectToAsset("collection", collectionObject);
+				//context.SetMainObject(collectionObject);
 				foreach(Transform child in root.transform)
 				{
-					Debug.Log("adding "+child.name);
-					context.AddObjectToAsset("_" + child.name, child.gameObject);
+					//var childInstance = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+					var childInstance = Object.Instantiate(child.gameObject);
+					childInstance.name = child.name;
+					context.AddObjectToAsset(childInstance.name, childInstance, AssetPreview.GetAssetPreview(childInstance));
 				}
-				Texture2D test = new Texture2D(16, 16);
-				for(int y = 0; y < test.height; y++)
+				for(int i = root.transform.childCount - 1; i >= 0; i--)
 				{
-					for(int x = 0; x < test.width; x++)
-					{
-						test.SetPixel(x, y, Random.value > 0.5f ? Color.black : Color.white);
-					}
+					Object.DestroyImmediate(root.transform.GetChild(i).gameObject);
 				}
-				test.Apply();
-				context.AddObjectToAsset("testTexture", test);
 			}
+
+			root.name = "_root";
+			//Object.DestroyImmediate(root);
+			AssetDatabase.RemoveObjectFromAsset(root);
 
 			//Save and reimport model if any changes were made
 			if(modified)
