@@ -64,7 +64,7 @@ namespace ModelProcessor.Editor
 							humanDesc.skeleton = humanDesc.skeleton.ToArray();
 							BlenderConverter.FixHumanDescription(root, ref humanDesc, customSettings.matchAxes);
 							var newAvatar = AvatarBuilder.BuildHumanAvatar(root, humanDesc);
-							newAvatar.name = avatar.name;
+							newAvatar.name = avatar.name + " new";
 							anim.avatar = newAvatar;
 							Object.DestroyImmediate(avatar);
 							context.AddObjectToAsset("avatar", newAvatar);
