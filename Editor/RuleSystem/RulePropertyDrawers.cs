@@ -23,7 +23,6 @@ namespace ModelProcessor.Editor.RuleSystem
 
 		public override VisualElement CreatePropertyGUI(SerializedProperty property)
 		{
-			Debug.Log("hoi");
 			return base.CreatePropertyGUI(property);
 		}
 

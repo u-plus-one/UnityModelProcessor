@@ -8,7 +8,8 @@ namespace ModelProcessor.Editor.RuleSystem
 	{
 		public SerializedObject extraDataSerializedObject;
 
-		private ReorderableList list;
+		private ReorderableList localRulesList;
+		private ReorderableList externalRulesList;
 
 		public void OnEnable()
 		{
@@ -17,7 +18,7 @@ namespace ModelProcessor.Editor.RuleSystem
 
 		public void OnDisable()
 		{
-			
+
 		}
 
 		public void OnInspectorGUI()
@@ -39,24 +40,33 @@ namespace ModelProcessor.Editor.RuleSystem
 
 		private void DrawRuleSet()
 		{
-			var set = extraDataSerializedObject.FindProperty(nameof(ModelProcessorSettings.ruleSet));
-			var enabled = set.FindPropertyRelative(nameof(RuleSet.enabled));
+			var enabled = extraDataSerializedObject.FindProperty(nameof(ModelProcessorSettings.applyRules));
+			var applyProjectRules = extraDataSerializedObject.FindProperty(nameof(ModelProcessorSettings.applyProjectRules));
+			var rules = extraDataSerializedObject.FindProperty(nameof(ModelProcessorSettings.rules));
+			var externalRuleAssets = extraDataSerializedObject.FindProperty(nameof(ModelProcessorSettings.externalRules));
 
 			GUILayout.Space(20);
-			GUILayout.Label("Rule Set", EditorStyles.boldLabel);
+			GUILayout.Label("Processor Rules", EditorStyles.boldLabel);
 			EditorGUILayout.PropertyField(enabled);
+			GUILayout.Space(10);
 			using(new EditorGUI.DisabledGroupScope(!enabled.boolValue))
 			{
-				if(list == null)
+				EditorGUILayout.PropertyField(applyProjectRules);
+				GUILayout.Space(10);
+				if(localRulesList == null)
 				{
-					list = GUIUtils.CreateReorderableList(extraDataSerializedObject
-						.FindProperty(nameof(ModelProcessorSettings.ruleSet))
-						.FindPropertyRelative(nameof(RuleSet.rules)), true);
-					list.elementHeight = 0;
-					list.showDefaultBackground = true;
+					localRulesList = GUIUtils.CreateReorderableList(rules, true);
+					localRulesList.elementHeight = 0;
+					localRulesList.showDefaultBackground = true;
 				}
-
-				list.DoLayoutList();
+				localRulesList.DoLayoutList();
+				if(externalRulesList == null)
+				{
+					externalRulesList = GUIUtils.CreateReorderableList(externalRuleAssets, true);
+					externalRulesList.elementHeight = 0;
+					externalRulesList.showDefaultBackground = true;
+				}
+				externalRulesList.DoLayoutList();
 			}
 		}
 	}

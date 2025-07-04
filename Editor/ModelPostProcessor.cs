@@ -86,9 +86,23 @@ namespace ModelProcessor.Editor
 				modified |= BlenderConverter.FixLights(root, intensityFactor, rangeFactor);
 			}
 
-			if(customSettings.ruleSet.enabled)
+			if(customSettings.applyRules)
 			{
-				customSettings.ruleSet.ApplyRulesToModel(root);
+				if(customSettings.applyProjectRules)
+				{
+					//TODO: Apply project settings rules
+				}
+				foreach(var rule in customSettings.rules)
+				{
+					rule.ApplyToModel(root);
+				}
+				foreach(var ruleAsset in customSettings.externalRules)
+				{
+					if(ruleAsset != null)
+					{
+						ruleAsset.ApplyToModel(root);
+					}
+				}
 			}
 
 			//Save and reimport model if any changes were made
