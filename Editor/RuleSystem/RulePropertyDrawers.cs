@@ -40,9 +40,16 @@ namespace ModelProcessor.Editor.RuleSystem
 				conditionsList = GUIUtils.CreateReorderableList(conditions, false);
 				conditionsList.showDefaultBackground = false;
 				conditionsList.drawHeaderCallback = pos => DrawConditionsHeader(conditionsList, pos, property);
-				conditionsList.footerHeight = 16;
-				conditionsList.drawFooterCallback = pos => DrawListFooter(conditionsList, pos);
+				conditionsList.displayAdd = false;
+				conditionsList.displayRemove = false;
+				//conditionsList.drawFooterCallback = pos => DrawListFooter(conditionsList, pos);
+				conditionsList.footerHeight = 0;
+				conditionsList.drawFooterCallback = _ => { };
 				conditionsList.drawNoneElementCallback = pos => GUI.Label(pos, "None (All Objects)");
+				conditionsList.drawElementCallback = (Rect rect, int index, bool isActive, bool isFocused) =>
+				{
+					DrawListElement(conditionsList, index, rect);
+				};
 				lists[conditions.propertyPath] = conditionsList;
 			}
 			if(!lists.TryGetValue(actions.propertyPath, out var actionsList))
@@ -50,8 +57,16 @@ namespace ModelProcessor.Editor.RuleSystem
 				actionsList = GUIUtils.CreateReorderableList(actions, false);
 				actionsList.showDefaultBackground = false;
 				actionsList.drawHeaderCallback = pos => DrawActionsHeader(actionsList, pos, property);
-				actionsList.footerHeight = 16;
-				actionsList.drawFooterCallback = pos => DrawListFooter(actionsList, pos);
+				actionsList.displayAdd = false;
+				actionsList.displayRemove = false;
+				actionsList.footerHeight = 0;
+				//actionsList.drawFooterCallback = pos => DrawListFooter(conditionsList, pos);
+				actionsList.drawFooterCallback = _ => { };
+				actionsList.drawNoneElementCallback = pos => GUI.Label(pos, "None (All Objects)");
+				actionsList.drawElementCallback = (Rect rect, int index, bool isActive, bool isFocused) =>
+				{
+					DrawListElement(actionsList, index, rect);
+				};
 				lists[actions.propertyPath] = actionsList;
 			}
 
@@ -78,6 +93,18 @@ namespace ModelProcessor.Editor.RuleSystem
 			//Actions
 			//GUI.Box(actionsPos, GUIContent.none, EditorStyles.helpBox);
 			actionsList.DoList(actionsPos);
+		}
+
+		private static void DrawListElement(ReorderableList conditionsList, int index, Rect rect)
+		{
+			var element = conditionsList.serializedProperty.GetArrayElementAtIndex(index);
+			GUIUtils.SplitRight(rect, 20, out rect, out var removePos);
+			EditorGUI.PropertyField(rect, element, GUIContent.none);
+			if(GUI.Button(removePos, ReorderableList.defaultBehaviours.iconToolbarMinus, ReorderableList.defaultBehaviours.preButton))
+			{
+				conditionsList.Select(index);
+				ReorderableList.defaultBehaviours.DoRemoveButton(conditionsList);
+			}
 		}
 
 		private void DrawListHeader(ReorderableList list, Rect pos)
@@ -112,17 +139,27 @@ namespace ModelProcessor.Editor.RuleSystem
 		private void DrawConditionsHeader(ReorderableList list, Rect pos, SerializedProperty property)
 		{
 			DrawListHeader(list, pos);
-			pos.xMin = pos.xMax - 120;
+			GUIUtils.SplitRight(pos, 120, out pos, out var toolbarPos);
+			GUIUtils.SplitRight(toolbarPos, 20, out toolbarPos, out var addPos);
 			var op = property.FindPropertyRelative(nameof(Rule.conditionOperator));
-			op.intValue = GUI.Toolbar(pos, op.intValue, conditionOperatorNames);
+			op.intValue = GUI.Toolbar(toolbarPos, op.intValue, conditionOperatorNames);
+			if(GUI.Button(addPos, ReorderableList.defaultBehaviours.iconToolbarPlus, ReorderableList.defaultBehaviours.preButton))
+			{
+				ReorderableList.defaultBehaviours.DoAddButton(list);
+			}
 		}
 
 		private void DrawActionsHeader(ReorderableList list, Rect pos, SerializedProperty property)
 		{
 			DrawListHeader(list, pos);
-			pos.xMin = pos.xMax - 120;
+			GUIUtils.SplitRight(pos, 120, out pos, out var toolbarPos);
+			GUIUtils.SplitRight(toolbarPos, 20, out toolbarPos, out var addPos);
 			var applyToChildren = property.FindPropertyRelative(nameof(Rule.applyToChildren));
-			applyToChildren.boolValue = EditorGUI.ToggleLeft(pos, "Apply to Children", applyToChildren.boolValue);
+			applyToChildren.boolValue = EditorGUI.ToggleLeft(toolbarPos, "Apply to Children", applyToChildren.boolValue);
+			if(GUI.Button(addPos, ReorderableList.defaultBehaviours.iconToolbarPlus, ReorderableList.defaultBehaviours.preButton))
+			{
+				ReorderableList.defaultBehaviours.DoAddButton(list);
+			}
 		}
 
 		public override float GetPropertyHeight(SerializedProperty property, GUIContent label)
