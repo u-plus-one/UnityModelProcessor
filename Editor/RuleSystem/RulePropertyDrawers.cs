@@ -313,6 +313,10 @@ namespace ModelProcessor.Editor.RuleSystem
 				case ActionType.SetLightmapScale:
 					value = EditorGUI.FloatField(position, GUIUtils.AsFloat(value, 1)).ToString(CultureInfo.InvariantCulture);
 					break;
+				case ActionType.AddCollider:
+				case ActionType.MakeColliderOnly:
+					value = EditorGUI.Toggle(position, "Convex", GUIUtils.AsBool(value, true)) ? "1" : "0";
+					break;
 			}
 			param.stringValue = value;
 		}

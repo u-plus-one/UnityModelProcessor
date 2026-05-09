@@ -32,6 +32,10 @@ namespace ModelProcessor.Editor.RuleSystem
 		RemoveRenderer = 101,
 		[InspectorName("Collider/Remove")]
 		RemoveCollider = 102,
+		[InspectorName("Collider/Add")]
+		AddCollider = 103,
+		[InspectorName("Collider/Make Collider Only")]
+		MakeColliderOnly = 104,
 		//rendering operations
 		[InspectorName("Renderer/Set Cast Shadows Mode")]
 		SetCastShadowsMode = 201,
@@ -104,6 +108,26 @@ namespace ModelProcessor.Editor.RuleSystem
 					if(part.gameObject.TryGetComponent<Collider>(out var collider))
 						Object.DestroyImmediate(collider);
 					break;
+				case ActionType.AddCollider:
+					if (!part.gameObject.TryGetComponent<Collider>(out _) && part.gameObject.TryGetComponent(out filter))
+					{
+						var mc = part.gameObject.AddComponent<MeshCollider>();
+						mc.sharedMesh = filter.sharedMesh;
+						mc.convex = GUIUtils.AsBool(parameter);
+					}
+					break;
+				case ActionType.MakeColliderOnly:
+					if (!part.gameObject.TryGetComponent<Collider>(out _) && part.gameObject.TryGetComponent(out filter))
+					{
+						var mc = part.gameObject.AddComponent<MeshCollider>();
+						mc.sharedMesh = filter.sharedMesh;
+						mc.convex = GUIUtils.AsBool(parameter);
+					}
+					if(part.gameObject.TryGetComponent(out filter))
+						Object.DestroyImmediate(filter);
+					if(part.gameObject.TryGetComponent(out renderer))
+						Object.DestroyImmediate(renderer);
+					break;
 				case ActionType.AddHelperComponent:
 					var type = System.Type.GetType("HelperComponent,Assembly-CSharp", false, true);
 					if(type != null)
@@ -125,7 +149,7 @@ namespace ModelProcessor.Editor.RuleSystem
 				case ActionType.SetReceiveShadowsMode:
 					if(part.gameObject.TryGetComponent(out renderer))
 					{
-						renderer.receiveShadows = bool.Parse(parameter);
+						renderer.receiveShadows = GUIUtils.AsBool(parameter);
 					}
 					break;
 				case ActionType.SetLightmapScale:
