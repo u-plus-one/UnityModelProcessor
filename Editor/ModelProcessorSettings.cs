@@ -2,7 +2,9 @@
 using NUnit.Framework;
 using System;
 using System.Collections.Generic;
+using UnityEditor;
 using UnityEngine;
+using Object = UnityEngine.Object;
 
 namespace ModelProcessor.Editor
 {
@@ -40,22 +42,63 @@ namespace ModelProcessor.Editor
 		public bool applyProjectRules = true;
 		public List<Rule> rules = new List<Rule>();
 		public List<RuleAsset> externalRules = new List<RuleAsset>();
-
+		[SerializeField, HideInInspector]
+		private List<string> externalRuleGuids = new List<string>();
+		
 		public static ModelProcessorSettings FromJson(string userDataJson)
 		{
 			var settings = CreateInstance<ModelProcessorSettings>();
-			JsonUtility.FromJsonOverwrite(userDataJson, settings);
+			settings.LoadJson(userDataJson);
 			return settings;
 		}
 
 		public void LoadJson(string userDataJson)
 		{
 			JsonUtility.FromJsonOverwrite(userDataJson, this);
+			externalRules.Clear();
+			foreach (var guid in externalRuleGuids)
+			{
+				if (string.IsNullOrEmpty(guid))
+				{
+					externalRules.Add(null);
+					continue;
+				}
+				var path = AssetDatabase.GUIDToAssetPath(guid);
+				if (string.IsNullOrEmpty(path))
+				{
+					Debug.LogError("Could not locate external rule asset with GUID: " + guid);
+					continue;
+				}
+				var asset = AssetDatabase.LoadAssetAtPath<RuleAsset>(path);
+				externalRules.Add(asset);
+				if (asset == null)
+				{
+					Debug.LogError("Could not load external rule asset at path: " + path);
+				}
+			}
 		}
 
 		public string ToJson()
 		{
-			return JsonUtility.ToJson(this);
+			externalRuleGuids.Clear();
+			foreach (var rule in externalRules)
+			{
+				string guid;
+				if (rule)
+				{
+					var path = AssetDatabase.GetAssetPath(rule);
+					guid = AssetDatabase.AssetPathToGUID(path);
+				}
+				else
+				{
+					guid = "";
+				}
+				externalRuleGuids.Add(guid);
+			}
+			// Clear external rule asset list to avoid serializing instance IDs
+			var clone = Object.Instantiate(this);
+			clone.externalRules.Clear();
+			return JsonUtility.ToJson(clone);
 		}
 	} 
 }
