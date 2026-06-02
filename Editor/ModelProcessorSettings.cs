@@ -30,6 +30,9 @@ namespace ModelProcessor.Editor
 		public bool applyAxisConversion = false;
 		[Tooltip("Rotate model by 180 degrees on the up axis to match Blender's axes with the ones in Unity")]
 		public bool matchAxes = false;
+		[Tooltip("Rotate root object by 90 degrees if the root object is empty. Not required if Unity generates a new root empty" +
+		         "(either because the model contains more than one root objects or 'Preserve Hierarchy' is on)")]
+		public bool rotateRootEmpty = false;
 
 		[Tooltip("Apply range and intensity corrections")]
 		public bool fixLights = false;

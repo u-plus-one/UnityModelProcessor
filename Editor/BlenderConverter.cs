@@ -61,7 +61,7 @@ namespace ModelProcessor.Editor
 		//(-90°, 180°, 0°)
 		private static readonly Matrix4x4 ROTATION_FIX_MATRIX_MA = Matrix4x4.Rotate(ROTATION_FIX_MA);
 
-		public static void FixModelOrientation(GameObject root, bool matchAxes, ModelImporter modelImporter)
+		public static void FixModelOrientation(GameObject root, bool matchAxes, bool rotateRootEmpty, ModelImporter modelImporter)
 		{
 			VerboseLog("Applying fix on " + root.name);
 			var meshes = GatherMeshes(root.transform);
@@ -70,12 +70,12 @@ namespace ModelProcessor.Editor
 			var transforms = root.GetComponentsInChildren<Transform>(true);
 
 			bool rootHasMesh = root.TryGetComponent<MeshFilter>(out _) || root.TryGetComponent<SkinnedMeshRenderer>(out _);
-			if(rootHasMesh)
+			if(rootHasMesh || rotateRootEmpty)
 			{
 				//Fix root transform
 				var a = root.transform;
-				var transformationMatrix = ApplyTransformFix(a, matchAxes, true);
-				transformationDeltas.Add(a, transformationMatrix);
+				var rootTransformationMatrix = ApplyTransformFix(a, matchAxes, true);
+				transformationDeltas.Add(a, rootTransformationMatrix);
 			}
 
 			for(int i = 0; i < transforms.Length; i++)

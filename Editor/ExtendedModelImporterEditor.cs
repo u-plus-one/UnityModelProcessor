@@ -261,6 +261,7 @@ namespace ModelProcessor.Editor
 			{
 				EditorGUI.indentLevel++;
 				EditorGUILayout.PropertyField(extraDataSerializedObject.FindProperty(nameof(ModelProcessorSettings.matchAxes)));
+				EditorGUILayout.PropertyField(extraDataSerializedObject.FindProperty(nameof(ModelProcessorSettings.rotateRootEmpty)));
 				EditorGUI.indentLevel--;
 			}
 
